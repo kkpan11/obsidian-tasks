@@ -1,20 +1,20 @@
 import { Plugin } from 'obsidian';
 
-import { Cache } from './Cache';
+import type { Task } from 'Task/Task';
+import { Cache } from './Obsidian/Cache';
 import { Commands } from './Commands';
 import { GlobalQuery } from './Config/GlobalQuery';
-import { TasksEvents } from './TasksEvents';
-import { initializeFile } from './File';
-import { InlineRenderer } from './InlineRenderer';
-import { newLivePreviewExtension } from './LivePreviewExtension';
-import { QueryRenderer } from './QueryRenderer';
+import { TasksEvents } from './Obsidian/TasksEvents';
+import { initializeFile } from './Obsidian/File';
+import { InlineRenderer } from './Obsidian/InlineRenderer';
+import { newLivePreviewExtension } from './Obsidian/LivePreviewExtension';
+import { QueryRenderer } from './Renderer/QueryRenderer';
 import { getSettings, updateSettings } from './Config/Settings';
 import { SettingsTab } from './Config/SettingsTab';
-import { StatusRegistry } from './StatusRegistry';
+import { StatusRegistry } from './Statuses/StatusRegistry';
 import { log, logging } from './lib/logging';
 import { EditorSuggestor } from './Suggestor/EditorSuggestorPopup';
 import { StatusSettings } from './Config/StatusSettings';
-import type { Task } from './Task';
 import { tasksApiV1 } from './Api';
 import { GlobalFilter } from './Config/GlobalFilter';
 
@@ -24,7 +24,7 @@ export default class TasksPlugin extends Plugin {
     public queryRenderer: QueryRenderer | undefined;
 
     get apiV1() {
-        return tasksApiV1(app);
+        return tasksApiV1(this.app);
     }
 
     async onload() {
@@ -52,13 +52,14 @@ export default class TasksPlugin extends Plugin {
         this.cache = new Cache({
             metadataCache: this.app.metadataCache,
             vault: this.app.vault,
+            workspace: this.app.workspace,
             events,
         });
         this.inlineRenderer = new InlineRenderer({ plugin: this });
         this.queryRenderer = new QueryRenderer({ plugin: this, events });
 
         this.registerEditorExtension(newLivePreviewExtension());
-        this.registerEditorSuggest(new EditorSuggestor(this.app, getSettings()));
+        this.registerEditorSuggest(new EditorSuggestor(this.app, getSettings(), this));
         new Commands({ plugin: this });
     }
 
@@ -90,7 +91,11 @@ export default class TasksPlugin extends Plugin {
         await this.saveData(getSettings());
     }
 
-    public getTasks(): Task[] | undefined {
-        return this.cache?.getTasks();
+    public getTasks(): Task[] {
+        if (this.cache === undefined) {
+            return [] as Task[];
+        } else {
+            return this.cache.getTasks();
+        }
     }
 }

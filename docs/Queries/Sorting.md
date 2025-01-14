@@ -15,6 +15,7 @@ This page is long. Here are some links to the main sections:
 - [[#Default sort order]]
 - [[#Custom Sorting]]
 - [[#Sort by Task Statuses]]
+- [[#Sort by Task Dependencies]]
 - [[#Sort by Dates in Tasks]]
 - [[#Sort by Other Task Properties]]
 - [[#Sort by File Properties]]
@@ -53,7 +54,7 @@ However, any `sort by` instructions in queries take precedence over these defaul
 ## Custom Sorting
 
 > [!released]
-> `sort by function` was introduced in Tasks X.Y.Z.
+> `sort by function` was introduced in Tasks 6.0.0.
 
 Tasks provides many built-in sorting options, but sometimes they don't quite do what is wanted by all users.
 
@@ -72,9 +73,9 @@ For more information, including adding your own customised statuses, see [[Statu
 - `sort by status` (done or todo)
 
 > [!Tip]
-> `sort by status.type` gives a much more useful sort order than `sort by status`. See [[#Status Type#]] below.
+> `sort by status.type` gives a much more useful sort order than `sort by status`. See [[#Status Type]] below.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by status** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by status** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.other_properties_task.isDone_docs.approved.md -->
 
@@ -94,7 +95,7 @@ sort by function !task.isDone
 > [!released]
 `sort by status.name` was introduced in Tasks 1.23.0.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by status names** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by status names** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.statuses_task.status.name_docs.approved.md -->
 
@@ -113,7 +114,7 @@ sort by function task.status.name
 > [!released]
 `sort by status.type` was introduced in Tasks 1.23.0.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by status types** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by status types** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.statuses_task.status.type_docs.approved.md -->
 
@@ -129,7 +130,7 @@ sort by function task.status.type
 
 There is no built-in instruction to sort by status symbols.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by status symbol** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by status symbol** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.statuses_task.status.symbol_docs.approved.md -->
 
@@ -145,7 +146,7 @@ sort by function task.status.symbol
 
 There is no built-in instruction to sort by next status symbols.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by next status symbol** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by next status symbol** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.statuses_task.status.nextSymbol_docs.approved.md -->
 
@@ -156,6 +157,37 @@ sort by function task.status.nextSymbol
 - Sort by the next status symbol.
 
 <!-- placeholder to force blank line after included text --><!-- endInclude -->
+
+## Sort by Task Dependencies
+
+At a high level, task dependencies define the order in which you want to work on a set of tasks. You can read more about them in [[Task Dependencies]].
+
+> [!released]
+> Task Dependencies were introduced in Tasks 6.1.0.
+
+### Id
+
+- `sort by id`
+
+For more information, see [[Task Dependencies]].
+
+> [!released]
+>
+> - Task Id was introduced in Tasks 6.1.0.
+
+Since Tasks 6.1.0, **[[Custom Sorting|custom sorting]] by Id** is now possible, using `task.id`.
+
+### Depends On
+
+There is no built-in instruction to sort by 'Depends On'.
+
+For more information, see [[Task Dependencies]].
+
+> [!released]
+>
+> - Task Depends On was introduced in Tasks 6.1.0.
+
+Since Tasks 6.1.0, **[[Custom Sorting|custom sorting]]  by Depends On** is now possible, using `task.dependsOn`.
 
 ## Sort by Dates in Tasks
 
@@ -168,13 +200,13 @@ When sorting tasks by date, such as with `sort by due`, tasks are sorted in this
 3. Tasks with **no due date** come last.
 
 > [!NOTE]
-> Prior to Tasks X.Y.Z, tasks with invalid dates were sorted **after** the tasks with valid dates.
+> Prior to Tasks 6.0.0, tasks with invalid dates were sorted **after** the tasks with valid dates.
 
 ### Done Date
 
 - `sort by done` (the date when the task was done)
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by done date** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by done date** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.dates_task.done_docs.approved.md -->
 
@@ -190,7 +222,7 @@ sort by function task.done.format("dddd")
 
 - `sort by due` (the date when the task is due)
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by due date** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by due date** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.dates_task.due_docs.approved.md -->
 
@@ -210,7 +242,7 @@ sort by function task.due.format("dddd")
 
 - `sort by scheduled` (the date when the task is scheduled)
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by scheduled date** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by scheduled date** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.dates_task.scheduled_docs.approved.md -->
 
@@ -226,7 +258,7 @@ sort by function task.scheduled.format("dddd")
 
 - `sort by start` (the date when the task starts)
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by start date** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by start date** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.dates_task.start_docs.approved.md -->
 
@@ -245,7 +277,7 @@ sort by function task.start.format("dddd")
 > [!released]
 `sort by created` was introduced in Tasks 2.0.0.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by created date** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by created date** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.dates_task.created_docs.approved.md -->
 
@@ -264,7 +296,7 @@ sort by function task.created.format("dddd")
 > [!released]
 `sort by cancelled` was introduced in Tasks 5.5.0.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by cancelled date** is now possible, using `task.cancelled`.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by cancelled date** is now possible, using `task.cancelled`.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.dates_task.cancelled_docs.approved.md -->
 
@@ -283,7 +315,7 @@ sort by function task.cancelled.format("dddd")
 > [!released]
 `sort by happens` was introduced in Tasks 1.21.0.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by happens date** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by happens date** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.dates_task.happens_docs.approved.md -->
 
@@ -301,7 +333,7 @@ sort by function task.happens.format("dddd")
 
 - `sort by description` (the description of the task)
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by description** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by description** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.other_properties_task.description_docs.approved.md -->
 
@@ -331,7 +363,7 @@ sort by function \
 
 ### Description without tags
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by description with tags removed** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by description with tags removed** is now possible.
 
 The value `task.descriptionWithoutTags` returns a copy of the description with all the tags removed, so that you can sort together any tasks whose descriptions differ only by their tags.
 
@@ -350,7 +382,7 @@ sort by function task.descriptionWithoutTags
 
 - `sort by priority` (priority of the task; "low" is below "none": [[Priority|priorities]])
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by priority name and number** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by priority name and number** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.other_properties_task.priorityName_docs.approved.md -->
 
@@ -378,7 +410,7 @@ sort by function task.priorityNumber
 
 - `sort by urgency` ([[Urgency|urgency]])
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by urgency** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by urgency** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.other_properties_task.urgency_docs.approved.md -->
 
@@ -395,7 +427,7 @@ sort by function reverse task.urgency
 
 - `sort by recurring` (recurring tasks sort before non-recurring ones: [[Recurring Tasks]])
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by recurrence** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by recurrence** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.other_properties_task.isRecurring_docs.approved.md -->
 
@@ -424,7 +456,7 @@ For example this query will sort by the second tag found in the description.
 > [!released]
 Tag sorting was introduced in Tasks 1.6.0.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by tags** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by tags** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.other_properties_task.tags_docs.approved.md -->
 
@@ -458,7 +490,7 @@ sort by function -task.tags.length
 
 There is no built-in instruction to sort by the original markdown line.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by original markdown line** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by original markdown line** is now possible.
 
 For example, this could be used to extract information from `task.originalMarkdown` that Tasks does not parse, to use for sorting tasks.
 
@@ -472,13 +504,42 @@ sort by function task.originalMarkdown
 
 <!-- placeholder to force blank line after included text --><!-- endInclude -->
 
+### Random sorting
+
+> [!released]
+> Random sorting was introduced in Tasks 7.11.0.
+
+This instruction sorts tasks in a random order:
+
+- `sort by random`
+
+The order is random but deterministic, calculated from task's description, and changes each day.
+
+> [!example] Example: Randomly select a few tasks to review
+> If you have a large vault with lots of undated tasks, reviewing them can be tedious: we have found it useful to be able to view a small selection every day.
+>
+> Review your backlog each day:
+>
+> - randomly select up to 10 undated tasks,
+> - then complete, update or delete a few of them!
+>
+> ````text
+> ```tasks
+> not done
+> no happens date
+> limit 10
+>
+> sort by random
+> ```
+> ````
+
 ## Sort by File Properties
 
 ### File Path
 
 - `sort by path` (the path to the file that contains the task)
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by file path** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by file path** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.file_properties_task.file.path_docs.approved.md -->
 
@@ -500,7 +561,7 @@ sort by function task.file.pathWithoutExtension
 
 There is no built-in instruction to sort by the top-level folder that contains the task.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by root folder** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by root folder** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.file_properties_task.file.root_docs.approved.md -->
 
@@ -516,7 +577,7 @@ sort by function task.file.root
 
 There is no built-in instruction to sort by the folder that contains the task.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by folder** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by folder** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.file_properties_task.file.folder_docs.approved.md -->
 
@@ -543,7 +604,7 @@ sort by function task.file.path === query.file.path
 > [!released]
 `sort by filename` was introduced in Tasks 1.21.0.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by file name** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by file name** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.file_properties_task.file.filename_docs.approved.md -->
 
@@ -568,7 +629,7 @@ sort by function task.file.filenameWithoutExtension
 > [!released]
 `sort by heading` was introduced in Tasks 1.21.0.
 
-Since Tasks X.Y.Z, **[[Custom Sorting|custom sorting]] by heading** is now possible.
+Since Tasks 6.0.0, **[[Custom Sorting|custom sorting]] by heading** is now possible.
 
 <!-- placeholder to force blank line before included text --><!-- include: CustomSortingExamples.test.file_properties_task.heading_docs.approved.md -->
 

@@ -96,7 +96,24 @@ Note that relative dates will be always interpreted as being in the future, beca
 > - `Only future dates` was introduced in Tasks 1.15.0.
 > - Editing of [[Dates#Created date|created]], [[Dates#Done date|done]] and [[Dates#Cancelled date|cancelled]] dates was introduced in Tasks 5.5.0.
 
-### Date abbreviations
+#### Date picker
+
+> [!released]
+> Introduced in Tasks 7.13.0.
+
+The modal provides a date picker, for easy selection of dates for your tasks.
+
+It uses a native date-picker on each platform, so the exact appearance and behaviour will vary.
+
+![Date-picker demonstration video](https://www.youtube.com/v/bOc6J2m6HSM)
+<span class="caption">Date-picker demonstration video</span>
+
+The screenshot below is from a Mac.
+
+![The date-picker allows easy mouse and keyboard adding and editing of dates](../images/modal-date-picker.png)
+<span class="caption">The date-picker allows easy mouse and keyboard adding and editing of dates</span>
+
+#### Date abbreviations
 
 > [!released]
 Introduced in Tasks 1.8.0.
@@ -117,6 +134,66 @@ Supported abbreviations:
 | `weekend`    | `sat`         |
 | `we`         | `sat`         |
 
+### Dependencies
+
+> [!released]
+> Introduced in Tasks 6.1.0.
+
+> [!Tip]
+> This section describes the mechanics of adding and editing dependencies between your tasks.
+>
+> For an explanation of the dependencies facility itself, see [[Task Dependencies]].
+
+Use the "Dependencies" area of the modal to specify relationships between tasks, to define the order in which you want to work on a set of tasks.
+
+> [!Example]
+> This is what the dependencies might look like for a task 'Have a party':
+>
+> ![A task which requires two tasks to be done first, and, when done, will allow one other task to be started on.](task-dependencies-party.png)
+> <span class="caption">A task which requires two tasks, 'Invite the guests' and 'Make the food' to be done first, and, when done, will allow one other task, 'Tidy up after party', to be started on.</span>
+
+#### Before this
+
+Use the "Before this" region to find and link to any tasks that **must be finished before the task being edited can be started**.
+
+This is marked **1** and **2** in the image above.
+
+#### After this
+
+Use the "After this" region to find and link to any tasks that **can only be started after the task being edited is finished**.
+
+This is areas **3** and **4** in the image above.
+
+#### Searching for tasks
+
+Understanding the search query:
+
+- In either "Before this" or "After this", start typing any text from the description of a required task.
+- Currently only task descriptions are searched, and not file paths.
+- You can type bits of words, in any order, and capitalisation does not matter.
+- For example, you could quickly find `Invite the guests` with `inv gu`, or `gu inv`.
+
+Understanding the matches:
+
+- As you type, Tasks will show you up to 20 closest matching tasks.
+- Other tasks in the same file as the task being edited are listed first.
+- Then matching tasks elsewhere in the vault are shown, followed by their path.
+- If any text is too long to fit, it is truncated with `...` and you can hover over the name to see the full text.
+
+This is what the above process looks like:
+
+![Searching for a task, to set up a dependency](../images/task-dependencies-search.png)
+<span class="caption">Searching for a task, to set up a dependency</span>
+
+#### Saving dependencies
+
+When you click Apply after editing dependencies:
+
+- `id` fields are added to any tasks that are now depended upon,
+- `dependsOn` fields are adjusted to add or remove dependencies.
+
+This is currently the only operation in Tasks that can edit multiple files in the vault in one step.
+
 ### Status
 
 > [!released]
@@ -128,14 +205,36 @@ Use the Status dropdown to change the Status Symbol for the task.
 
 For more information, including adding your own customised statuses, see [[Statuses]].
 
-> [!warning]
-> Editing the Status in the modal does not yet add, remove or update the Done date.
->
-> Also, completing a recurring task via the Status in the modal does not yet add the new recurrence.
->
-> We are tracking this in [issue #1590](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/1590).
->
-> For now, you should still complete tasks via [[Toggling and Editing Statuses#'Tasks Toggle task done' command|command]], by [[Toggling and Editing Statuses#Toggling Tasks with mouse|clicking on task checkboxes]] or by [[Toggling and Editing Statuses#'Change task status' context menu|right-clicking on task checkboxes]].
+#### Automatic setting of dates upon status change
+
+> [!released]
+> Introduced in Tasks 6.1.0.
+
+When you change the Status Symbol for a Task, the [[Dates#Date-tracking settings|Date-tracking settings]] are used to determine whether to update any date fields:
+
+- **If** the status is changed **to** a [[Status Types#DONE|DONE status type]] **from** any other status type,
+  - **and** the "Set done date on every completed task" option is enabled,
+  - **then** the **Done date** is changed to today's date.
+- **If** the status is changed **to** a [[Status Types#CANCELLED|CANCELLED status type]] **from** any other status type,
+  - **and** the "Set cancelled date on every completed task" option is enabled,
+  - **then** the **Cancelled date** is changed to today's date.
+
+#### Overriding dates on status change
+
+When Tasks has automatically set a Created, Done or Cancelled date to today, you are free to edit the value.
+
+For example, perhaps you actually completed a task yesterday and forget to mark it as complete. Now you can complete it in the modal, and set the Done date to yesterday, before clicking Apply.
+
+#### Rewriting history: completing recurring tasks in the modal
+
+> [!Tip]
+> When marking `when done` recurring tasks as Done in the Edit Task modal, the date of the *next* occurrence is now calculated from the value in the Done date field.
+
+The Done date value defaults to the current date, but can then be edited before clicking Apply.
+
+This might be useful if you realise that you had forgotten to mark a recurring task as Done on the actual day that you completed it, and so you would like the new instance to be created based on the day you really completed the task, rather than today when you are marking it as done.
+
+(Today's date is still used for an Created day on a new recurrence, though.)
 
 ## Display values
 
@@ -161,16 +260,11 @@ To close the modal and cancel your edits, do one of:
 
 ## Known limitations
 
-### Editing status on Edit task modal
+### No support for Auto Complete in the Description
 
-> [!warning]
-> Editing the Status in the modal does not yet add, remove or update the Done date.
->
-> Also, completing a recurring task via the Status in the modal does not yet add the new recurrence.
->
-> We are tracking this in [issue #1590](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/1590).
->
-> For now, you should still complete tasks via [[Toggling and Editing Statuses#'Tasks Toggle task done' command|command]], by [[Toggling and Editing Statuses#Toggling Tasks with mouse|clicking on task checkboxes]] or by [[Toggling and Editing Statuses#'Change task status' context menu|right-clicking on task checkboxes]].
+The Description field in the 'Create or edit Task' Modal does not yet support Obsidian's Auto Complete facility to help with adding tags, formatting, linking to other notes and so on.
+
+We are tracking this in [issue #1763](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/1763).
 
 ### Need to scroll on phone screens
 

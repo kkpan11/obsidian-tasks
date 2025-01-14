@@ -1,4 +1,4 @@
-import type { Task } from '../Task';
+import type { Task } from '../Task/Task';
 import { FunctionOrError, evaluateExpression, evaluateExpressionOrCatch, parseExpression } from './Expression';
 import type { QueryContext } from './QueryContext';
 
@@ -53,7 +53,7 @@ export class TaskExpression {
     }
 
     public isValid() {
-        return this.functionOrError.error === undefined;
+        return this.functionOrError.isValid();
     }
 
     public get parseError(): string | undefined {
