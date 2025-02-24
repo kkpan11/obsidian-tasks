@@ -5,10 +5,11 @@ import {
     expectTaskComparesEqual,
 } from '../../CustomMatchers/CustomMatchersForSorting';
 import { TaskBuilder } from '../../TestingTools/TaskBuilder';
-import { StatusType } from '../../../src/StatusConfiguration';
-import { Status } from '../../../src/Status';
+import { StatusType } from '../../../src/Statuses/StatusConfiguration';
+import { Status } from '../../../src/Statuses/Status';
 import * as FilterParser from '../../../src/Query/FilterParser';
-import { SampleTasks, fromLine } from '../../TestHelpers';
+import { fromLine } from '../../TestingTools/TestHelpers';
+import { SampleTasks } from '../../TestingTools/SampleTasks';
 
 // Abbreviated names so that the markdown text is aligned
 const todoTask = fromLine({ line: '- [ ] Todo' });
@@ -20,7 +21,7 @@ const non_Task = new TaskBuilder()
     .statusValues('^', 'non-task', 'x', false, StatusType.NON_TASK)
     .description('Non-task')
     .build();
-const emptTask = new TaskBuilder().status(Status.makeEmpty()).description('Empty task').build();
+const emptTask = new TaskBuilder().status(Status.EMPTY).description('Empty task').build();
 
 describe('status.name', () => {
     it('value', () => {

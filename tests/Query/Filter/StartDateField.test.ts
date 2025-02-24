@@ -5,7 +5,7 @@ import moment from 'moment';
 import { StartDateField } from '../../../src/Query/Filter/StartDateField';
 import { TaskBuilder } from '../../TestingTools/TaskBuilder';
 import { expectTaskComparesAfter, expectTaskComparesBefore } from '../../CustomMatchers/CustomMatchersForSorting';
-import { SampleTasks } from '../../TestHelpers';
+import { SampleTasks } from '../../TestingTools/SampleTasks';
 
 window.moment = moment;
 
@@ -83,6 +83,7 @@ describe('grouping by start date', () => {
             '2023-05-30 Tuesday',
             '2023-05-31 Wednesday',
             '2023-06-01 Thursday',
+            '2023-06-02 Friday',
             'No start date',
         ]);
     });

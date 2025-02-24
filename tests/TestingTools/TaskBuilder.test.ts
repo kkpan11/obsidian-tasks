@@ -3,7 +3,9 @@
  */
 
 import moment from 'moment';
-import type { Task } from '../../src/Task';
+import type { Task } from '../../src/Task/Task';
+import example_kanban from '../Obsidian/__test_data__/example_kanban.json';
+import jason_properties from '../Obsidian/__test_data__/jason_properties.json';
 import { TaskBuilder } from './TaskBuilder';
 
 export {};
@@ -21,6 +23,21 @@ describe('TaskBuilder', () => {
         const builder = new TaskBuilder();
         const task = builder.description('hello').build();
         expect(task.originalMarkdown).toEqual('- [ ] hello');
+    });
+
+    it('should populate CachedMetadata', () => {
+        const builder = new TaskBuilder().mockData(example_kanban);
+        const task = builder.build();
+        expect(task.file.cachedMetadata).toBe(example_kanban.cachedMetadata);
+    });
+
+    it('should populate CachedMetadata in two different TaskBuilder objects simultaneously', () => {
+        const builder1 = new TaskBuilder().mockData(example_kanban);
+        const builder2 = new TaskBuilder().mockData(jason_properties);
+        const task1 = builder1.build();
+        const task2 = builder2.build();
+        expect(task1.file.property('kanban-plugin')).toEqual('basic');
+        expect(task2.file.property('publish')).toEqual(false);
     });
 
     function hasValue<Type>(value: Type[keyof Type]): boolean {
@@ -54,11 +71,11 @@ describe('TaskBuilder', () => {
     it('createFullyPopulatedTask() should populate every field', () => {
         const task: Task = TaskBuilder.createFullyPopulatedTask();
 
-        expect(getNullOrUnsetFields(task)).toEqual([]);
+        expect(getNullOrUnsetFields(task)).toEqual(['parent', 'children']);
         expect(getNullOrUnsetFields(task.taskLocation)).toEqual([]);
 
         expect(task.originalMarkdown).toEqual(
-            '  - [ ] Do exercises #todo #health 🔼 🔁 every day when done ➕ 2023-07-01 🛫 2023-07-02 ⏳ 2023-07-03 📅 2023-07-04 ❌ 2023-07-06 ✅ 2023-07-05 ^dcf64c',
+            '  - [ ] Do exercises #todo #health 🆔 abcdef ⛔ 123456,abc123 🔼 🔁 every day when done 🏁 delete ➕ 2023-07-01 🛫 2023-07-02 ⏳ 2023-07-03 📅 2023-07-04 ❌ 2023-07-06 ✅ 2023-07-05 ^dcf64c',
         );
     });
 });

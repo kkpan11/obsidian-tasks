@@ -6,9 +6,10 @@ import moment from 'moment';
 import { evaluateExpression, evaluateExpressionOrCatch, parseExpression } from '../../src/Scripting/Expression';
 import { TaskBuilder } from '../TestingTools/TaskBuilder';
 import { verifyMarkdownForDocs } from '../TestingTools/VerifyMarkdown';
-import { continue_lines } from '../../src/Query/Scanner';
+import { continueLinesFlattened } from '../../src/Query/Scanner';
 import { constructArguments, parseAndEvaluateExpression } from '../../src/Scripting/TaskExpression';
 import { makeQueryContext } from '../../src/Scripting/QueryContext';
+import { TasksFile } from '../../src/Scripting/TasksFile';
 import { formatToRepresentType } from './ScriptingTestHelpers';
 
 window.moment = moment;
@@ -54,7 +55,7 @@ describe('Expression', () => {
     });
 
     const task = TaskBuilder.createFullyPopulatedTask();
-    const queryContext = makeQueryContext('temp.md');
+    const queryContext = makeQueryContext(new TasksFile('temp.md'));
 
     describe('detect errors at parse stage', () => {
         it('should report meaningful error message for parentheses too few parentheses', () => {
@@ -112,7 +113,7 @@ describe('Expression', () => {
         markdown +=
             expressions
                 .map((expression) => {
-                    const result = parseAndEvaluateExpression(task, continue_lines(expression), queryContext);
+                    const result = parseAndEvaluateExpression(task, continueLinesFlattened(expression), queryContext);
                     return `${expression}${resultSeparator}=> ${formatToRepresentType(result)}`;
                 })
                 .join(separator) + '\n';

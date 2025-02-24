@@ -44,9 +44,15 @@ The Tasks plugin renders a task in the following structure (this refers to query
         - Task description and tags (span class="task-description")
           - Internal span
             - Each tag in the description is wrapped in <a href class="tag" data-tag-name="[tag-name]">
+        - Task ID (span class="task-id")
+          - Internal span
+        - Task 'depends on' (span class="task-dependsOn")
+          - Internal span
         - Task priority (span class="task-priority" + data-task-priority attribute)
           - Internal span
         - Task recurrence rule (span class="task-recurring")
+          - Internal span
+        - Task 'on completion' (span class="onCompletion")
           - Internal span
         - Task created date (span class="task-created" + data-task-created attribute)
           - Internal span
@@ -62,6 +68,34 @@ Each component span is marked with a **generic class**, which denotes the type o
 
 Within each component span there is an additional "internal" span, which is the one holding the actual component text.
 The reason for this additional internal span is that it allows CSS styles that closely wrap the text itself, rather than its container box, e.g. for the purpose of drawing a highlight or a box that is exactly in the size of the text.
+
+### Sample HTML: Full mode
+
+To help visualise the structure above, below is the HTML for a sample Tasks search shown in [[Layout#Full Mode|full mode]].
+
+> [!Note]
+> In Reading Mode:
+>
+> - all the classes and data inside the `li` are available,
+> - and none of the "Task extras" content is available.
+
+> [!example]- Sample HTML: Full mode
+> ![[Sample HTML - Full mode]]
+
+### Sample HTML: Short mode
+
+Below is the same Tasks search in [[Layout#Short Mode|short mode]].
+
+> [!Note]
+> The differences from Full mode are:
+>
+> - the `ul` has an extra class `tasks-layout-short-mode`,
+> - any text values after Tasks emoji are omitted,
+> - the backlink is shorter and has an extra class `internal-link-short-mode`,
+> - the postpone button has an extra class `tasks-postpone-short-mode`.
+
+> [!example]- Sample HTML: Short mode
+> ![[Sample HTML - Short mode]]
 
 ## Generic Classes and Data Attributes
 
@@ -82,6 +116,10 @@ The generic classes are:
 - `task-cancelled`
 - `task-done`
 - `task-recurring`
+- `task-onCompletion`
+- `task-id`
+- `task-dependsOn`
+- `task-block-link`
 
 In addition to the generic classes, there are [**data attributes**](https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes) that represent the content of the various task components.
 
@@ -162,7 +200,7 @@ The following additional components have the following classes:
 > - `tasks-group-heading` was introduced in Tasks 1.6.0.
 > - `plugin-tasks-query-explanation` was introduced in Tasks 1.19.0.
 > - `tasks-postpone` was added in Tasks 5.3.0.
-> - Styling of the Edit and Postpone buttons was changed in Tasks X.Y.Z: see [[How to style buttons]].
+> - Styling of the Edit and Postpone buttons was changed in Tasks 6.0.0: see [[How to style buttons]].
 
 ## CSS Examples
 

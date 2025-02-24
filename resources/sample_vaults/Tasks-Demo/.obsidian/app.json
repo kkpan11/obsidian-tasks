@@ -1,11 +1,14 @@
 {
   "legacyEditor": false,
-  "livePreview": true,
+  "livePreview": false,
   "useTab": false,
   "readableLineLength": false,
   "newFileLocation": "current",
   "attachmentFolderPath": "./",
   "spellcheck": true,
   "showInlineTitle": false,
-  "showLineNumber": true
+  "showLineNumber": true,
+  "alwaysUpdateLinks": true,
+  "showUnsupportedFiles": true,
+  "promptDelete": false
 }
