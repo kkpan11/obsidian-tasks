@@ -1,8 +1,8 @@
-import { Status } from '../../src/Status';
-import { StatusConfiguration, StatusType } from '../../src/StatusConfiguration';
-import type { StatusCollection, StatusCollectionEntry } from '../../src/StatusCollection';
+import { Status } from '../../src/Statuses/Status';
+import { StatusConfiguration, StatusType } from '../../src/Statuses/StatusConfiguration';
+import type { StatusCollection, StatusCollectionEntry } from '../../src/Statuses/StatusCollection';
 import * as Themes from '../../src/Config/Themes';
-import { StatusValidator } from '../../src/StatusValidator';
+import { StatusValidator } from '../../src/Statuses/StatusValidator';
 import * as VerifyStatuses from '../TestingTools/VerifyStatuses';
 import * as StatusExamples from '../TestingTools/StatusExamples';
 import { constructStatuses } from '../TestingTools/StatusesTestHelpers';
@@ -11,11 +11,11 @@ describe('DefaultStatuses', () => {
     // These "test" write out a markdown representation of the default task statuses,
     // for embedding in the user docs.
     it('core-statuses', () => {
-        VerifyStatuses.verifyStatusesInMultipleFormats([Status.makeTodo(), Status.makeDone()], true);
+        VerifyStatuses.verifyStatusesInMultipleFormats([Status.TODO, Status.DONE], true);
     });
 
     it('custom-statuses', () => {
-        VerifyStatuses.verifyStatusesInMultipleFormats([Status.makeInProgress(), Status.makeCancelled()], true);
+        VerifyStatuses.verifyStatusesInMultipleFormats([Status.IN_PROGRESS, Status.CANCELLED], true);
     });
 
     it('important-cycle', () => {
@@ -63,6 +63,7 @@ describe('Theme', () => {
         // Alphabetical order by name:
         ['AnuPpuccin', Themes.anuppuccinSupportedStatuses()],
         ['Aura', Themes.auraSupportedStatuses()],
+        ['Border', Themes.borderSupportedStatuses()],
         ['Ebullientworks', Themes.ebullientworksSupportedStatuses()],
         ['ITS', Themes.itsSupportedStatuses()],
         ['LYT Mode', Themes.lytModeSupportedStatuses()],
@@ -94,10 +95,10 @@ describe('Theme', () => {
 describe('Status Transitions', () => {
     it('status-types', () => {
         const statuses = [
-            Status.makeTodo(),
-            Status.makeInProgress(),
-            Status.makeDone(),
-            Status.makeCancelled(),
+            Status.TODO,
+            Status.IN_PROGRESS,
+            Status.DONE,
+            Status.CANCELLED,
             new Status(new StatusConfiguration('~', 'My custom status', ' ', false, StatusType.NON_TASK)),
         ];
         VerifyStatuses.verifyTransitionsAsMarkdownTable(statuses);

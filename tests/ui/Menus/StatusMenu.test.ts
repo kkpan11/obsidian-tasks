@@ -6,11 +6,11 @@ import moment from 'moment';
 
 import { StatusMenu } from '../../../src/ui/Menus/StatusMenu';
 import { TaskBuilder } from '../../TestingTools/TaskBuilder';
-import { StatusRegistry } from '../../../src/StatusRegistry';
+import { StatusRegistry } from '../../../src/Statuses/StatusRegistry';
 import { StatusSettings } from '../../../src/Config/StatusSettings';
 import { resetSettings, updateSettings } from '../../../src/Config/Settings';
-import { StatusConfiguration, StatusType } from '../../../src/StatusConfiguration';
-import { Status } from '../../../src/Status';
+import { StatusConfiguration, StatusType } from '../../../src/Statuses/StatusConfiguration';
+import { Status } from '../../../src/Statuses/Status';
 import { TestableTaskSaver, menuToString } from './MenuTestingHelpers';
 
 window.moment = moment;
@@ -28,7 +28,7 @@ describe('StatusMenu', () => {
 
     it('should show checkmark against the current task status', () => {
         // Arrange
-        const task = new TaskBuilder().status(Status.makeInProgress()).build();
+        const task = new TaskBuilder().status(Status.IN_PROGRESS).build();
         const statusRegistry = new StatusRegistry();
 
         // Act
@@ -78,9 +78,9 @@ describe('StatusMenu', () => {
         // Arrange
         const onlyShowCancelled = new StatusRegistry();
         onlyShowCancelled.clearStatuses();
-        onlyShowCancelled.add(Status.makeCancelled());
+        onlyShowCancelled.add(Status.CANCELLED);
 
-        const task = new TaskBuilder().status(Status.makeTodo()).build();
+        const task = new TaskBuilder().status(Status.TODO).build();
         const menu = new StatusMenu(onlyShowCancelled, task, TestableTaskSaver.testableTaskSaver);
 
         // Act

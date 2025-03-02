@@ -1,5 +1,6 @@
 import { RootField } from '../../../src/Query/Filter/RootField';
-import { SampleTasks, fromLine } from '../../TestHelpers';
+import { fromLine } from '../../TestingTools/TestHelpers';
+import { SampleTasks } from '../../TestingTools/SampleTasks';
 
 describe('root', () => {
     it('should provide access to root folder name with trailing slash', () => {
@@ -25,9 +26,9 @@ describe('root', () => {
         // Assert
         expect(filter).toBeValid();
         expect(filter).not.toMatchTaskWithPath('');
-        expect(filter).toMatchTaskWithPath('/SeArch_Text/some folder name/some file name.md');
-        expect(filter).not.toMatchTaskWithPath('/some root folder/SeArch_Text/search_text.md'); // Ignores text in child folder names
-        expect(filter).not.toMatchTaskWithPath('/some root folder/folder/search_text.md'); // Ignores text in file names
+        expect(filter).toMatchTaskWithPath('SeArch_Text/some folder name/some file name.md');
+        expect(filter).not.toMatchTaskWithPath('some root folder/SeArch_Text/search_text.md'); // Ignores text in child folder names
+        expect(filter).not.toMatchTaskWithPath('some root folder/folder/search_text.md'); // Ignores text in file names
     });
 });
 

@@ -3,8 +3,9 @@
  */
 
 import moment from 'moment';
-import type { Task } from '../../../../src/Task';
-import { SampleTasks, fromLine, fromLines } from '../../../TestHelpers';
+import type { Task } from '../../../../src/Task/Task';
+import { fromLine, fromLines } from '../../../TestingTools/TestHelpers';
+import { SampleTasks } from '../../../TestingTools/SampleTasks';
 import type { CustomPropertyDocsTestData, QueryInstructionLineAndDescription } from '../VerifyFunctionFieldSamples';
 import {
     verifyFunctionFieldFilterSamplesForDocs,
@@ -377,6 +378,18 @@ describe('other properties', () => {
                 ],
             ],
             SampleTasks.withRepresentativeTags(),
+        ],
+
+        [
+            'task.lineNumber',
+            [
+                [
+                    'sort by function task.lineNumber',
+                    "Sort by the line number of the task's original line in the MarkDown file.",
+                    'This is useful if you are unhappy with the [[Sorting#default sort order]].',
+                ],
+            ],
+            SampleTasks.withRepresentativeLineNumbers(),
         ],
 
         [

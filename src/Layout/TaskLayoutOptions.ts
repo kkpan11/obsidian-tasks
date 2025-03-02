@@ -1,4 +1,27 @@
-import { type TaskLayoutComponent, taskLayoutComponents } from '../TaskLayout';
+/**
+ * {@link Task} fields used for rendering. Use references to this enum ({@link TaskLayoutComponent.Id})
+ * instead of plain string values (`id`).
+ *
+ * The order here determines the order that task fields are rendered and written to markdown.
+ */
+export enum TaskLayoutComponent {
+    // NEW_TASK_FIELD_EDIT_REQUIRED
+    Description = 'description',
+    Id = 'id',
+    DependsOn = 'dependsOn',
+    Priority = 'priority',
+    RecurrenceRule = 'recurrenceRule',
+    OnCompletion = 'onCompletion',
+    CreatedDate = 'createdDate',
+    StartDate = 'startDate',
+    ScheduledDate = 'scheduledDate',
+    DueDate = 'dueDate',
+    CancelledDate = 'cancelledDate',
+    DoneDate = 'doneDate',
+    BlockLink = 'blockLink',
+}
+
+export const taskLayoutComponents = Object.values(TaskLayoutComponent);
 
 /**
  * Various rendering options of tasks in a query.
@@ -58,7 +81,7 @@ export class TaskLayoutOptions {
     public get toggleableComponents() {
         return taskLayoutComponents.filter((component) => {
             // Description and blockLink are always shown
-            return component !== 'description' && component !== 'blockLink';
+            return component !== TaskLayoutComponent.Description && component !== TaskLayoutComponent.BlockLink;
         });
     }
 
@@ -69,4 +92,44 @@ export class TaskLayoutOptions {
 
         this.setTagsVisibility(!this.areTagsShown());
     }
+}
+
+/**
+ * Parse show/hide options for Task layout options
+ * @param taskLayoutOptions
+ * @param option - must already have been lower-cased
+ * @param visible - whether the option should be shown
+ * @return True if the option was recognised, and false otherwise
+ * @see parseQueryShowHideOptions
+ */
+export function parseTaskShowHideOptions(taskLayoutOptions: TaskLayoutOptions, option: string, visible: boolean) {
+    const optionMap = new Map<string, TaskLayoutComponent>([
+        // NEW_TASK_FIELD_EDIT_REQUIRED
+        // Alphabetical order
+        ['cancelled date', TaskLayoutComponent.CancelledDate],
+        ['created date', TaskLayoutComponent.CreatedDate],
+        ['depends on', TaskLayoutComponent.DependsOn],
+        ['done date', TaskLayoutComponent.DoneDate],
+        ['due date', TaskLayoutComponent.DueDate],
+        ['id', TaskLayoutComponent.Id],
+        ['on completion', TaskLayoutComponent.OnCompletion],
+        ['priority', TaskLayoutComponent.Priority],
+        ['recurrence rule', TaskLayoutComponent.RecurrenceRule],
+        ['scheduled date', TaskLayoutComponent.ScheduledDate],
+        ['start date', TaskLayoutComponent.StartDate],
+    ]);
+
+    for (const [key, component] of optionMap.entries()) {
+        if (option.startsWith(key)) {
+            taskLayoutOptions.setVisibility(component, visible);
+            return true;
+        }
+    }
+
+    if (option.startsWith('tags')) {
+        taskLayoutOptions.setTagsVisibility(visible);
+        return true;
+    }
+
+    return false;
 }

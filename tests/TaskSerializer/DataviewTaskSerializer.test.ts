@@ -2,12 +2,13 @@
  * @jest-environment jsdom
  */
 import moment from 'moment';
-import { Priority } from '../../src/Task';
 import { RecurrenceBuilder } from '../TestingTools/RecurrenceBuilder';
 import { TaskBuilder } from '../TestingTools/TaskBuilder';
 import { DATAVIEW_SYMBOLS, DataviewTaskSerializer } from '../../src/TaskSerializer/DataviewTaskSerializer';
-import type { Task } from '../../src/Task';
+import type { Task } from '../../src/Task/Task';
 import type { TaskDetails } from '../../src/TaskSerializer';
+import { OnCompletion } from '../../src/Task/OnCompletion';
+import { Priority } from '../../src/Task/Priority';
 
 jest.mock('obsidian');
 window.moment = moment;
@@ -49,6 +50,72 @@ describe('DataviewTaskSerializer', () => {
             const taskDetails = deserialize('[repeat:: every day]');
             expect(taskDetails).toMatchTaskDetails({
                 recurrence: new RecurrenceBuilder().rule('every day').build(),
+            });
+        });
+
+        describe('should parse onCompletion', () => {
+            it('should parse delete action', () => {
+                const onCompletion = '[onCompletion:: delete]';
+                const taskDetails = deserialize(onCompletion);
+                expect(taskDetails).toMatchTaskDetails({ onCompletion: OnCompletion.Delete });
+            });
+        });
+
+        describe('should parse depends on', () => {
+            it('should parse depends on one task', () => {
+                const id = '[dependsOn:: F12345]';
+                const taskDetails = deserialize(id);
+                expect(taskDetails).toMatchTaskDetails({ dependsOn: ['F12345'] });
+            });
+
+            it('should parse depends on two tasks', () => {
+                const id = '[dependsOn:: 123456,abC123]';
+                const taskDetails = deserialize(id);
+                expect(taskDetails).toMatchTaskDetails({ dependsOn: ['123456', 'abC123'] });
+            });
+
+            it('should parse depends on multiple tasks with varying spaces tasks', () => {
+                const id = '[dependsOn::  ab , CD ,  EF  ,    GK]';
+                const taskDetails = deserialize(id);
+                expect(taskDetails).toMatchTaskDetails({ dependsOn: ['ab', 'CD', 'EF', 'GK'] });
+            });
+
+            it('should treat dependsOn as case-sensitive, so dependson remains in the description', () => {
+                const id = '[dependson:: F12345]';
+                const taskDetails = deserialize(id);
+                expect(taskDetails).toMatchTaskDetails({ description: id, dependsOn: [] });
+            });
+        });
+
+        describe('should parse id', () => {
+            it('should parse id with lower-case and numbers', () => {
+                const id = '[id:: pqrd0f]';
+                const taskDetails = deserialize(id);
+                expect(taskDetails).toMatchTaskDetails({ id: 'pqrd0f' });
+            });
+
+            it('should parse id with capitals', () => {
+                const id = '[id:: Abcd0f]';
+                const taskDetails = deserialize(id);
+                expect(taskDetails).toMatchTaskDetails({ id: 'Abcd0f' });
+            });
+
+            it('should parse id with hyphen', () => {
+                const id = '[id:: Abcd0f-]';
+                const taskDetails = deserialize(id);
+                expect(taskDetails).toMatchTaskDetails({ id: 'Abcd0f-' });
+            });
+
+            it('should parse id with underscore', () => {
+                const id = '[id:: Ab_cd0f]';
+                const taskDetails = deserialize(id);
+                expect(taskDetails).toMatchTaskDetails({ id: 'Ab_cd0f' });
+            });
+
+            it('should not parse id with asterisk, so id is left in description', () => {
+                const id = '[id:: A*bcd0f]';
+                const taskDetails = deserialize(id);
+                expect(taskDetails).toMatchTaskDetails({ description: id, id: '' });
             });
         });
 
@@ -213,7 +280,7 @@ describe('DataviewTaskSerializer', () => {
         // This is one major behavior difference between Dataview and Tasks
         // This task is marked as skipped until tasks has support for parsing fields arbitrarily
         // within a task line
-        it.skip('should recognize inline fields arbitrarily positioned in the string', () => {
+        it.failing('should recognize inline fields arbitrarily positioned in the string', () => {
             const taskDetails = deserialize('Some task that is [due::2021-08-02] and is [priority::high]');
             expect(taskDetails).toMatchTaskDetails({
                 description: 'Some task that is [due::2021-08-02] and is [priority::high]',
@@ -259,17 +326,35 @@ describe('DataviewTaskSerializer', () => {
             expect(serialized).toEqual('  [repeat:: every day]');
         });
 
+        it('should serialize onCompletion', () => {
+            const task = new TaskBuilder().onCompletion(OnCompletion.Delete).description('').build();
+            const serialized = serialize(task);
+            expect(serialized).toEqual('  [onCompletion:: delete]');
+        });
+
         it('should serialize tags', () => {
             const task = new TaskBuilder().description('').tags(['#hello', '#world', '#task']).build();
             const serialized = serialize(task);
             expect(serialized).toEqual(' #hello #world #task');
         });
 
+        it('should serialize depends on', () => {
+            const task = new TaskBuilder().description('').dependsOn(['123456', 'abc123']).build();
+            const serialized = serialize(task);
+            expect(serialized).toEqual('  [dependsOn:: 123456,abc123]');
+        });
+
+        it('should serialize id', () => {
+            const task = new TaskBuilder().description('').id('abcdef').build();
+            const serialized = serialize(task);
+            expect(serialized).toEqual('  [id:: abcdef]');
+        });
+
         it('should serialize a fully populated task', () => {
             const task = TaskBuilder.createFullyPopulatedTask();
             const serialized = serialize(task);
             expect(serialized).toMatchInlineSnapshot(
-                '"Do exercises #todo #health  [priority:: medium]  [repeat:: every day when done]  [created:: 2023-07-01]  [start:: 2023-07-02]  [scheduled:: 2023-07-03]  [due:: 2023-07-04]  [cancelled:: 2023-07-06]  [completion:: 2023-07-05] ^dcf64c"',
+                '"Do exercises #todo #health  [id:: abcdef]  [dependsOn:: 123456,abc123]  [priority:: medium]  [repeat:: every day when done]  [onCompletion:: delete]  [created:: 2023-07-01]  [start:: 2023-07-02]  [scheduled:: 2023-07-03]  [due:: 2023-07-04]  [cancelled:: 2023-07-06]  [completion:: 2023-07-05] ^dcf64c"',
             );
         });
     });

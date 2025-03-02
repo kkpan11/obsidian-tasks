@@ -2,8 +2,9 @@ import { diff } from 'jest-diff';
 import type { MatcherFunction } from 'expect';
 import moment from 'moment';
 import type { TaskDetails } from '../../src/TaskSerializer';
-import { Priority, TaskRegularExpressions } from '../../src/Task';
-import { Recurrence } from '../../src/Recurrence';
+import { Recurrence } from '../../src/Task/Recurrence';
+import { Priority } from '../../src/Task/Priority';
+import { TaskRegularExpressions } from '../../src/Task/TaskRegularExpressions';
 
 declare global {
     namespace jest {
@@ -84,6 +85,7 @@ function summarizeTaskDetails(t: TaskDetails | null): SummarizedTaskDetails | nu
         doneDate: t.doneDate?.format(TaskRegularExpressions.dateFormat) ?? null,
         cancelledDate: t.cancelledDate?.format(TaskRegularExpressions.dateFormat) ?? null,
         recurrence: t.recurrence?.toText() ?? null,
+        id: t.id?.valueOf().toString() ?? null,
     };
 }
 
@@ -108,6 +110,9 @@ function tryBuildTaskDetails(t: object): TaskDetails | null {
         doneDate: null,
         cancelledDate: null,
         recurrence: null,
+        onCompletion: '',
+        dependsOn: [],
+        id: '',
         tags: [],
         ...t,
     };
