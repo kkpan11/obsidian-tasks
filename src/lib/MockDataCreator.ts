@@ -1,5 +1,8 @@
 import type { ListItemCache, Pos } from 'obsidian';
-import type { Task } from '../Task';
+import type { ListItem } from '../Task/ListItem';
+import type { Task } from '../Task/Task';
+
+// See File.test.ts for how to use this.
 
 type MockTaskLocation = {
     path: string;
@@ -42,7 +45,7 @@ export type MockTogglingDataForTesting = {
  * @see saveMockDataForTesting
  */
 export function getMockDataForTesting(
-    originalTask: Task,
+    originalTask: ListItem,
     fileLines: string[],
     listItemsCache: ListItemCache[],
 ): MockTogglingDataForTesting {
@@ -84,7 +87,7 @@ export function getMockDataForTesting(
  * @param fileLines
  * @param listItemsCache
  */
-export function saveMockDataForTesting(originalTask: Task, fileLines: string[], listItemsCache: ListItemCache[]) {
+export function saveMockDataForTesting(originalTask: ListItem, fileLines: string[], listItemsCache: ListItemCache[]) {
     const everything = getMockDataForTesting(originalTask, fileLines, listItemsCache);
     console.error(`Inconsistent lines: SAVE THE OUTPUT
 data:

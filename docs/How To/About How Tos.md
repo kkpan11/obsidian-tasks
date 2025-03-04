@@ -24,4 +24,9 @@ These How-to guides take you through the steps required to solve real-world prob
 ## Viewing Tasks
 
 - [[How to style backlinks]]
+- [[How to style buttons]]
 - [[Show tasks in a calendar]]
+
+## Advanced Techniques
+
+- [[Make a query user interface]]

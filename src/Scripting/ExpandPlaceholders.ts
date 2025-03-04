@@ -1,5 +1,6 @@
 import Mustache from 'mustache';
 import proxyData from 'mustache-validator';
+import { type ExpressionParameter, evaluateExpression, parseExpression } from './Expression';
 
 // https://github.com/janl/mustache.js
 
@@ -7,8 +8,10 @@ import proxyData from 'mustache-validator';
  * Expand any placeholder strings - {{....}} - in the given template, and return the result.
  *
  * The template implementation is currently provided by: [mustache.js](https://github.com/janl/mustache.js).
+ * This is augmented by also allowing the templates to contain function calls.
  *
- * @param template - A template string, typically with placeholders such as {{query.task.folder}}
+ * @param template - A template string, typically with placeholders such as {{query.task.folder}} or
+ *                  {{query.file.property('task_instruction')}}
  * @param view - The property values
  *
  * @throws Error
@@ -25,7 +28,11 @@ export function expandPlaceholders(template: string, view: any): string {
     };
 
     try {
-        return Mustache.render(template, proxyData(view));
+        // Preprocess the template to evaluate any placeholders that involve function calls
+        const evaluatedTemplate = evaluateAnyFunctionCalls(template, view);
+
+        // Render the preprocessed template
+        return Mustache.render(evaluatedTemplate, proxyData(view));
     } catch (error) {
         let message = '';
         if (error instanceof Error) {
@@ -42,4 +49,39 @@ The problem is in:
     ${template}`;
         throw Error(message);
     }
+}
+
+// Regex to detect placeholders
+const PLACEHOLDER_REGEX = new RegExp(
+    [
+        // Match the opening double braces `{{`
+        '\\{\\{',
+
+        // Lazily capture everything inside (.*?), ensuring it stops at the first `}}`
+        '(.*?)',
+
+        // Match the closing double braces `}}`
+        '\\}\\}',
+    ].join(''), // Combine the parts into a single string
+    'g', // Global flag to find all matches
+);
+
+function evaluateAnyFunctionCalls(template: string, view: any) {
+    return template.replace(PLACEHOLDER_REGEX, (_match, reconstructed) => {
+        const paramsArgs: ExpressionParameter[] = createExpressionParameters(view);
+        const functionOrError = parseExpression(paramsArgs, reconstructed);
+        if (functionOrError.isValid()) {
+            const result = evaluateExpression(functionOrError.queryComponent!, paramsArgs);
+            if (result !== undefined) {
+                return result;
+            }
+        }
+
+        // Fall back on returning the raw string, including {{ and }} - and get Mustache to report the error.
+        return _match;
+    });
+}
+
+function createExpressionParameters(view: any): ExpressionParameter[] {
+    return Object.entries(view) as ExpressionParameter[];
 }

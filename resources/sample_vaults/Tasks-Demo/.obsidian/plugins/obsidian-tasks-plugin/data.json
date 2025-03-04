@@ -1,5 +1,5 @@
 {
-  "globalQuery": "",
+  "globalQuery": "# Exclude templates files:\nroot does not include _meta\n\n# Ignore the sample tasks that demonstrate Theme and Snippet support:\npath does not include Manual Testing/SlrVb's Alternative Checkboxes\npath does not include Styling/Snippet -\npath does not include Styling/Theme -\n",
   "globalFilter": "#task",
   "removeGlobalFilter": true,
   "taskFormat": "tasksPluginEmoji",
@@ -11,6 +11,7 @@
   "autoSuggestMaxItems": 6,
   "provideAccessKeys": true,
   "useFilenameAsScheduledDate": true,
+  "filenameAsScheduledDateFormat": "MMM DD, YYYY",
   "filenameAsDateFolders": [],
   "recurrenceOnNextLine": false,
   "statusSettings": {
@@ -57,7 +58,8 @@
   },
   "debugSettings": {
     "ignoreSortInstructions": false,
-    "showTaskHiddenData": false
+    "showTaskHiddenData": false,
+    "recordTimings": false
   },
   "loggingOptions": {
     "minLevels": {

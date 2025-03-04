@@ -2,7 +2,7 @@
 
 The fields shown below can be surrounded by either `[]` or `()`.
 
-## Dataview Format Dates
+## Dataview Format for Dates
 
 <!-- placeholder to force blank line before included text --><!-- include: DocsSamplesForTaskFormats.test.Serializer_Dates_dataview-include.approved.md -->
 
@@ -31,6 +31,26 @@ The fields shown below can be surrounded by either `[]` or `()`.
 ## Dataview Format for Recurrence
 
 - [ ] #task Is a recurring task  [repeat:: every day when done]
+
+## Dataview Format for OnCompletion
+
+<!-- placeholder to force blank line before included text --><!-- include: DocsSamplesForTaskFormats.test.Serializer_OnCompletion_dataview-include.approved.md -->
+
+- [ ] #task Keep this task when done
+- [ ] #task Keep this task when done too  [onCompletion:: keep]
+- [ ] #task Remove this task when done  [onCompletion:: delete]
+- [ ] #task Remove completed instance of this recurring task when done  [repeat:: every day]  [onCompletion:: delete]
+
+<!-- placeholder to force blank line after included text --><!-- endInclude -->
+
+## Dataview Format for Dependencies
+
+<!-- placeholder to force blank line before included text --><!-- include: DocsSamplesForTaskFormats.test.Serializer_Dependencies_dataview-include.approved.md -->
+
+- [ ] #task do this first  [id:: dcf64c]
+- [ ] #task do this after first and some other task  [dependsOn:: dcf64c,0h17ye]
+
+<!-- placeholder to force blank line after included text --><!-- endInclude -->
 
 ## All Dataview Fields
 
