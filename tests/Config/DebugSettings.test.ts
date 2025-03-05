@@ -1,7 +1,7 @@
 import { DebugSettings } from '../../src/Config/DebugSettings';
 import { resetSettings, updateSettings } from '../../src/Config/Settings';
 import { Query } from '../../src/Query/Query';
-import { createTasksFromMarkdown } from '../TestHelpers';
+import { createTasksFromMarkdown } from '../TestingTools/TestHelpers';
 
 describe('DebugSettings', () => {
     afterEach(() => {
@@ -36,8 +36,6 @@ describe('DebugSettings', () => {
 
         expect(query.explainQuery()).toMatchInlineSnapshot(`
             "No filters supplied. All tasks will match the query.
-
-            No grouping instructions supplied.
 
             sort by status
 

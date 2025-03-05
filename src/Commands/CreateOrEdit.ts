@@ -1,10 +1,10 @@
 import { App, Editor, MarkdownView, View } from 'obsidian';
-import { TaskModal } from '../TaskModal';
-import type { Task } from '../Task';
-import { DateFallback } from '../DateFallback';
+import { TaskModal } from '../Obsidian/TaskModal';
+import type { Task } from '../Task/Task';
+import { DateFallback } from '../DateTime/DateFallback';
 import { taskFromLine } from './CreateOrEditTaskParser';
 
-export const createOrEdit = (checking: boolean, editor: Editor, view: View, app: App) => {
+export const createOrEdit = (checking: boolean, editor: Editor, view: View, app: App, allTasks: Task[]) => {
     if (checking) {
         return view instanceof MarkdownView;
     }
@@ -36,6 +36,7 @@ export const createOrEdit = (checking: boolean, editor: Editor, view: View, app:
         app,
         task,
         onSubmit,
+        allTasks,
     });
     taskModal.open();
 };

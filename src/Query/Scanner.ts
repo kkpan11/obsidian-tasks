@@ -1,3 +1,5 @@
+import { Statement } from './Statement';
+
 function endsWith1Slash(inputLine: string) {
     return inputLine.endsWith('\\');
 }
@@ -34,27 +36,56 @@ function adjustLine(inputLine: string, continuePreviousLine: boolean) {
     return adjustedLine;
 }
 
-function saveLine(outputLines: string[], continuePreviousLine: boolean, adjustedLine: string) {
-    if (continuePreviousLine) {
-        outputLines[outputLines.length - 1] += ' ' + adjustedLine;
-    } else {
-        outputLines.push(adjustedLine);
-    }
+/**
+ * Removes newlines escaped by a backslash.
+ * A trailing backslash at the end of a line can be escaped by doubling it.
+ *
+ * @param input input string
+ * @returns modified input, as a string
+ *
+ * @see continueLines
+ */
+export function continueLinesFlattened(input: string): string {
+    return continueLines(input)
+        .map((instruction) => instruction.anyContinuationLinesRemoved)
+        .join('\n');
 }
 
 /**
  * Removes newlines escaped by a backslash.
  * A trailing backslash at the end of a line can be escaped by doubling it.
  *
+ * Instruction lines are not trimmed.
+ * But instructions that are empty or only contain whitespace are discarded.
+ *
  * @param input input string
- * @returns modified input
+ * @returns modified input, as a list of strings
+ *
+ * @see continueLinesFlattened
  */
-export function continue_lines(input: string): string {
-    const outputLines: string[] = [];
+export function continueLines(input: string): Statement[] {
+    const instructions: Statement[] = [];
     let continuePreviousLine = false;
-    for (const inputLine of input.split('\n')) {
+
+    let currentStatementRaw = '';
+    let currentStatementProcessed = '';
+
+    // See https://github.com/obsidian-tasks-group/obsidian-tasks/issues/3137.
+    //      Issue #3137 revealed that if the last line of the query ended in
+    //      a backslash, this function returned without saved the final
+    //      instruction.
+    //      The simplest way to prevent this is to add an extra end-of-line
+    //      to the end of the query, which will get ignored when not needed:
+    const inputWithGuaranteedFinalEOL = input + '\n';
+    for (const inputLine of inputWithGuaranteedFinalEOL.split('\n')) {
         const adjustedLine = adjustLine(inputLine, continuePreviousLine);
-        saveLine(outputLines, continuePreviousLine, adjustedLine);
+        if (continuePreviousLine) {
+            currentStatementRaw += '\n' + inputLine;
+            currentStatementProcessed += ' ' + adjustedLine;
+        } else {
+            currentStatementRaw = inputLine;
+            currentStatementProcessed = adjustedLine;
+        }
 
         // Decide what to do with the next line:
         if (endsWith2Slashes(inputLine)) {
@@ -62,8 +93,15 @@ export function continue_lines(input: string): string {
         } else {
             continuePreviousLine = endsWith1Slash(inputLine);
         }
+        if (!continuePreviousLine) {
+            if (currentStatementProcessed.trim() !== '') {
+                instructions.push(new Statement(currentStatementRaw, currentStatementProcessed));
+            }
+            currentStatementRaw = '';
+            currentStatementProcessed = '';
+        }
     }
-    return outputLines.join('\n');
+    return instructions;
 }
 
 /**
@@ -76,8 +114,5 @@ export function continue_lines(input: string): string {
  * @returns List of statements
  */
 export function scan(input: string): string[] {
-    return continue_lines(input)
-        .split('\n')
-        .map((rawLine: string) => rawLine.trim())
-        .filter((line) => line !== '');
+    return continueLines(input).map((instruction: Statement) => instruction.anyContinuationLinesRemoved);
 }

@@ -11,16 +11,21 @@ All these links should still work:
 <!-- Alphabetical order, please -->
 
 - <https://publish.obsidian.md/tasks/Advanced/Advanced>
+- <https://publish.obsidian.md/tasks/Advanced/Quickadd>
 - <https://publish.obsidian.md/tasks/Getting+Started/Auto-Suggest>
 - <https://publish.obsidian.md/tasks/Getting+Started/Backlinks>
 - <https://publish.obsidian.md/tasks/Getting+Started/Create+or+edit+Task>
 - <https://publish.obsidian.md/tasks/How+To/How+Tos>
+- <https://publish.obsidian.md/tasks/Installation>
 - <https://publish.obsidian.md/tasks/Installation/Installation>
 - <https://publish.obsidian.md/tasks/Other+Plugins/Other+Plugins>
 - <https://publish.obsidian.md/tasks/Queries/Queries>
 - <https://publish.obsidian.md/tasks/Quick+Reference/Quick+Reference>
 - <https://publish.obsidian.md/tasks/Reference/Reference>
 - <https://publish.obsidian.md/tasks/Reference/Status+Collections/Status+Collections>
+- <https://publish.obsidian.md/tasks/Useful+Links>
+- <https://publish.obsidian.md/tasks/What+is+New%3F/Breaking+Changes>
+- <https://publish.obsidian.md/tasks/What+is+New%3F/Changelog>
 
 ## Moved files in the contributing vault
 

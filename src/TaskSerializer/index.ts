@@ -1,4 +1,4 @@
-import type { Task } from '../Task';
+import type { Task } from '../Task/Task';
 
 type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
@@ -21,6 +21,9 @@ export type TaskDetails = Writeable<
         | 'doneDate'
         | 'cancelledDate'
         | 'recurrence'
+        | 'onCompletion'
+        | 'dependsOn'
+        | 'id'
         | 'tags'
     >
 >;
@@ -39,7 +42,6 @@ export type TaskDetails = Writeable<
  *
  *        - Retrieving and setting a fallback scheduled date (done in {@link Task.fromLine})
  *
- * @exports
  * @interface TaskSerializer
  */
 export interface TaskSerializer {

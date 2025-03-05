@@ -1,4 +1,5 @@
 import { Query } from '../Query/Query';
+import type { OptionalTasksFile } from '../Scripting/TasksFile';
 
 /**
  * Global Query set in the {@link SettingsTab} and associated services.
@@ -10,13 +11,12 @@ import { Query } from '../Query/Query';
  *   They should use `new GlobalQuery()`, which makes simpler, more readable
  *   tests that can be run in parallel.
  *
- * @export
  * @class GlobalQuery
  */
 export class GlobalQuery {
     private static instance: GlobalQuery;
 
-    static empty = '';
+    static readonly empty = '';
     private _source;
 
     /**
@@ -46,10 +46,12 @@ export class GlobalQuery {
 
     /**
      * Returns {@link Query} object with the Global Query
-     * @param path
+     * @param tasksFile
      */
-    public query(path: string | undefined = undefined): Query {
-        return new Query(this._source, path);
+    public query(tasksFile: OptionalTasksFile = undefined): Query {
+        const query = new Query(this._source, tasksFile);
+        query.removeIllegalGlobalQueryInstructions();
+        return query;
     }
 
     /**

@@ -1,7 +1,7 @@
-import type { Task } from '../../Task';
-import type { Comparator } from '../Sorter';
-import { Sorter } from '../Sorter';
-import type { GrouperFunction } from '../Grouper';
+import type { Task } from '../../Task/Task';
+import type { Comparator } from '../Sort/Sorter';
+import { Sorter } from '../Sort/Sorter';
+import type { GrouperFunction } from '../Group/Grouper';
 import type { FilterOrErrorMessage } from './FilterOrErrorMessage';
 import { FilterInstructions } from './FilterInstructions';
 import { MultiTextField } from './MultiTextField';
@@ -28,7 +28,7 @@ export class TagsField extends MultiTextField {
 
     public createFilterOrErrorMessage(line: string): FilterOrErrorMessage {
         const filterResult = this.filterInstructions.createFilterOrErrorMessage(line);
-        if (filterResult.filter !== undefined) {
+        if (filterResult.isValid()) {
             return filterResult;
         }
 

@@ -1,11 +1,16 @@
 // Builder
 import type { Moment } from 'moment';
-import { Status } from '../../src/Status';
-import { Priority, Task } from '../../src/Task';
-import { Recurrence } from '../../src/Recurrence';
-import { DateParser } from '../../src/Query/DateParser';
-import { StatusConfiguration, StatusType } from '../../src/StatusConfiguration';
-import { TaskLocation } from '../../src/TaskLocation';
+import { TasksFile } from '../../src/Scripting/TasksFile';
+import { Status } from '../../src/Statuses/Status';
+import { OnCompletion } from '../../src/Task/OnCompletion';
+import { Occurrence } from '../../src/Task/Occurrence';
+import { Task } from '../../src/Task/Task';
+import { Recurrence } from '../../src/Task/Recurrence';
+import { DateParser } from '../../src/DateTime/DateParser';
+import { StatusConfiguration, StatusType } from '../../src/Statuses/StatusConfiguration';
+import { TaskLocation } from '../../src/Task/TaskLocation';
+import { Priority } from '../../src/Task/Priority';
+import { setCurrentCacheFile } from '../__mocks__/obsidian';
 
 /**
  * A fluent class for creating tasks for tests.
@@ -21,7 +26,7 @@ import { TaskLocation } from '../../src/TaskLocation';
  */
 export class TaskBuilder {
     // NEW_TASK_FIELD_EDIT_REQUIRED
-    private _status: Status = Status.makeTodo();
+    private _status: Status = Status.TODO;
     private _description: string = 'my description';
     private _path: string = '';
     private _indentation: string = '';
@@ -43,9 +48,13 @@ export class TaskBuilder {
     private _cancelledDate: Moment | null = null;
 
     private _recurrence: Recurrence | null = null;
+    private _onCompletion: OnCompletion = OnCompletion.Ignore;
     private _blockLink: string = '';
 
     private _scheduledDateIsInferred: boolean = false;
+    private _id: string = '';
+    private _dependsOn: string[] = [];
+    private _mockData: any = undefined;
 
     /**
      * Build a Task
@@ -64,12 +73,16 @@ export class TaskBuilder {
         if (this._tags.length > 0) {
             description += ' ' + this._tags.join(' ');
         }
+        if (this._mockData !== undefined) {
+            setCurrentCacheFile(this._mockData);
+        }
+        const cachedMetadata = this._mockData?.cachedMetadata ?? {};
         const task = new Task({
             // NEW_TASK_FIELD_EDIT_REQUIRED
             status: this._status,
             description: description,
             taskLocation: new TaskLocation(
-                this._path,
+                new TasksFile(this._path, cachedMetadata),
                 this._lineNumber,
                 this._sectionStart,
                 this._sectionIndex,
@@ -85,6 +98,9 @@ export class TaskBuilder {
             doneDate: this._doneDate,
             cancelledDate: this._cancelledDate,
             recurrence: this._recurrence,
+            onCompletion: this._onCompletion,
+            dependsOn: this._dependsOn,
+            id: this._id,
             blockLink: this._blockLink,
             tags: this._tags,
             originalMarkdown: '',
@@ -113,6 +129,9 @@ export class TaskBuilder {
             .dueDate('2023-07-04')
             .doneDate('2023-07-05')
             .cancelledDate('2023-07-06')
+            .onCompletion(OnCompletion.Delete)
+            .dependsOn(['123456', 'abc123'])
+            .id('abcdef')
             .blockLink(' ^dcf64c')
             // Values in TaskLocation:
             .path('some/folder/fileName.md')
@@ -124,9 +143,11 @@ export class TaskBuilder {
         taskBuilder.recurrence(
             Recurrence.fromText({
                 recurrenceRuleText: 'every day when done',
-                startDate: taskBuilder._startDate,
-                scheduledDate: taskBuilder._scheduledDate,
-                dueDate: taskBuilder._dueDate,
+                occurrence: new Occurrence({
+                    startDate: taskBuilder._startDate,
+                    scheduledDate: taskBuilder._scheduledDate,
+                    dueDate: taskBuilder._dueDate,
+                }),
             }),
         );
 
@@ -144,7 +165,7 @@ export class TaskBuilder {
      *
      * @param status
      */
-    public status(status: Status): TaskBuilder {
+    public status(status: Status): this {
         this._status = status;
         return this;
     }
@@ -155,7 +176,7 @@ export class TaskBuilder {
         nextStatusSymbol: string,
         availableAsCommand: boolean,
         type: StatusType,
-    ): TaskBuilder {
+    ): this {
         const statusConfiguration = new StatusConfiguration(symbol, name, nextStatusSymbol, availableAsCommand, type);
         return this.status(new Status(statusConfiguration));
     }
@@ -166,7 +187,7 @@ export class TaskBuilder {
      * This is not parsed for tags. Tags should be added via the separate {@link tags} method.
      * @param description - description for the task, without tags
      */
-    public description(description: string): TaskBuilder {
+    public description(description: string): this {
         this._description = description;
         return this;
     }
@@ -175,77 +196,89 @@ export class TaskBuilder {
      *
      * @param path Path to file, including file name extension. Use empty string to indicate 'unknown
      */
-    public path(path: string): TaskBuilder {
+    public path(path: string): this {
         this._path = path;
         return this;
     }
 
-    public indentation(indentation: string): TaskBuilder {
+    /**
+     * See {@link example_kanban} and other files in the same directory, for available sample mock data.
+     *
+     * @example
+     *      const builder = new TaskBuilder().mockData(example_kanban);
+     * @param mockData
+     */
+    public mockData(mockData: any) {
+        this._mockData = mockData;
+        return this;
+    }
+
+    public indentation(indentation: string): this {
         this._indentation = indentation;
         return this;
     }
 
-    public listMarker(listMarker: string): TaskBuilder {
+    public listMarker(listMarker: string): this {
         this._listMarker = listMarker;
         return this;
     }
 
-    public lineNumber(lineNumber: number): TaskBuilder {
+    public lineNumber(lineNumber: number): this {
         this._lineNumber = lineNumber;
         return this;
     }
 
-    public sectionStart(sectionStart: number): TaskBuilder {
+    public sectionStart(sectionStart: number): this {
         this._sectionStart = sectionStart;
         return this;
     }
 
-    public sectionIndex(sectionIndex: number): TaskBuilder {
+    public sectionIndex(sectionIndex: number): this {
         this._sectionIndex = sectionIndex;
         return this;
     }
 
-    public precedingHeader(precedingHeader: string | null): TaskBuilder {
+    public precedingHeader(precedingHeader: string | null): this {
         this._precedingHeader = precedingHeader;
         return this;
     }
 
-    public tags(tags: string[]): TaskBuilder {
+    public tags(tags: string[]): this {
         this._tags = tags;
         return this;
     }
 
-    public priority(priority: Priority): TaskBuilder {
+    public priority(priority: Priority): this {
         this._priority = priority;
         return this;
     }
 
-    public createdDate(createdDate: string | null): TaskBuilder {
+    public createdDate(createdDate: string | null): this {
         this._createdDate = TaskBuilder.parseDate(createdDate);
         return this;
     }
 
-    public startDate(startDate: string | null): TaskBuilder {
+    public startDate(startDate: string | null): this {
         this._startDate = TaskBuilder.parseDate(startDate);
         return this;
     }
 
-    public scheduledDate(scheduledDate: string | null): TaskBuilder {
+    public scheduledDate(scheduledDate: string | null): this {
         this._scheduledDate = TaskBuilder.parseDate(scheduledDate);
         return this;
     }
 
-    public dueDate(dueDate: string | null): TaskBuilder {
+    public dueDate(dueDate: string | null): this {
         this._dueDate = TaskBuilder.parseDate(dueDate);
         return this;
     }
 
-    public doneDate(doneDate: string | null): TaskBuilder {
+    public doneDate(doneDate: string | null): this {
         this._doneDate = TaskBuilder.parseDate(doneDate);
         return this;
     }
 
-    public cancelledDate(cancelledDate: string | null): TaskBuilder {
+    public cancelledDate(cancelledDate: string | null): this {
         this._cancelledDate = TaskBuilder.parseDate(cancelledDate);
         return this;
     }
@@ -254,18 +287,33 @@ export class TaskBuilder {
      * See {@link RecurrenceBuilder} for easy construction of {@link Recurrence} objects in tests.
      * @param recurrence
      */
-    public recurrence(recurrence: Recurrence | null): TaskBuilder {
+    public recurrence(recurrence: Recurrence | null): this {
         this._recurrence = recurrence;
         return this;
     }
 
-    public blockLink(blockLink: string): TaskBuilder {
+    public onCompletion(onCompletion: OnCompletion): this {
+        this._onCompletion = onCompletion;
+        return this;
+    }
+
+    public blockLink(blockLink: string): this {
         this._blockLink = blockLink;
         return this;
     }
 
     public scheduledDateIsInferred(isInferred: boolean) {
         this._scheduledDateIsInferred = isInferred;
+        return this;
+    }
+
+    public dependsOn(dependsOn: string[]) {
+        this._dependsOn = dependsOn;
+        return this;
+    }
+
+    public id(id: string) {
+        this._id = id;
         return this;
     }
 

@@ -11,12 +11,16 @@ aliases:
 ## In this section
 
 - [[Dataview]]
+- [[Kanban Plugin]]
+- [[Meta Bind Plugin]]
+  - Easily modify the [[layout]] of your Tasks searches, without having to edit instructions.
+- [[QuickAdd]]
+  - Using the Quickadd plugin to help create tasks
 
 ## Working with Other Obsidian Plugins
 
 Note: Some information about working with other Obsidian plugins is currently under the Advanced section.
 
-- [[Quickadd|QuickAdd]]
 - [[Notifications|Reminders]]
 - [[Daily Agenda|Templates with Calendar or Periodic Notes]]
 

@@ -1,11 +1,11 @@
 import type { Moment } from 'moment';
-import { DateRange } from '../DateRange';
-import type { Task } from '../../Task';
-import { DateParser } from '../DateParser';
+import { DateRange } from '../../DateTime/DateRange';
+import type { Task } from '../../Task/Task';
+import { DateParser } from '../../DateTime/DateParser';
 import { Explanation } from '../Explain/Explanation';
-import type { Comparator } from '../Sorter';
-import { compareByDate } from '../../lib/DateTools';
-import type { GrouperFunction } from '../Grouper';
+import type { Comparator } from '../Sort/Sorter';
+import { compareByDate } from '../../DateTime/DateTools';
+import type { GrouperFunction } from '../Group/Grouper';
 import { TemplatingPluginTools } from '../../lib/TemplatingPluginTools';
 import { Field } from './Field';
 import { Filter, type FilterFunction } from './Filter';
@@ -55,7 +55,7 @@ export abstract class DateField extends Field {
         }
 
         const filterResult = this.filterInstructions.createFilterOrErrorMessage(line);
-        if (filterResult.filter !== undefined) {
+        if (filterResult.isValid()) {
             return filterResult;
         }
 

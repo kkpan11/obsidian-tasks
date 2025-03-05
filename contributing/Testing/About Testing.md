@@ -23,6 +23,11 @@ Testing dates and times:
 
 - [[How do I use Moment in tests]] - how to test date and time values
 - [[Simulating Dates and Times]] - examples of how to use fixed dates and times in tests
+- [[Testing and Time Zones]] - how to test in different time zones (with difficulty)
+
+Testing code that uses Obsidian API:
+
+- [[Using Obsidian API in tests]]
 
 More advanced features:
 

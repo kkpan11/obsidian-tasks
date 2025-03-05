@@ -1,10 +1,10 @@
 import { diff } from 'jest-diff';
-import type { Task } from '../../src/Task';
+import type { Task } from '../../src/Task/Task';
 import type { FilterOrErrorMessage } from '../../src/Query/Filter/FilterOrErrorMessage';
-import { fromLine } from '../TestHelpers';
+import { fromLine } from '../TestingTools/TestHelpers';
 import { TaskBuilder } from '../TestingTools/TaskBuilder';
-import type { StatusConfiguration } from '../../src/StatusConfiguration';
-import { Status } from '../../src/Status';
+import type { StatusConfiguration } from '../../src/Statuses/StatusConfiguration';
+import { Status } from '../../src/Statuses/Status';
 import { SearchInfo } from '../../src/Query/SearchInfo';
 
 /**
@@ -67,6 +67,7 @@ declare global {
             toBeValid(): R;
             toHaveExplanation(expectedExplanation: string): R;
             toMatchTaskWithSearchInfo(task: Task, searchInfo: SearchInfo): R;
+            toMatchTaskInTaskList(task: Task, allTasks: Task[]): R;
             toMatchTask(task: Task): R;
             toMatchTaskFromLine(line: string): R;
             toMatchTaskWithDescription(description: string): R;
@@ -79,6 +80,7 @@ declare global {
             toBeValid(): any;
             toHaveExplanation(expectedExplanation: string): any;
             toMatchTaskWithSearchInfo(task: Task, searchInfo: SearchInfo): any;
+            toMatchTaskInTaskList(task: Task, allTasks: Task[]): any;
             toMatchTask(task: Task): any;
             toMatchTaskFromLine(line: string): any;
             toMatchTaskWithDescription(description: string): any;
@@ -91,6 +93,7 @@ declare global {
             toBeValid(): any;
             toHaveExplanation(expectedExplanation: string): any;
             toMatchTaskWithSearchInfo(task: Task, searchInfo: SearchInfo): any;
+            toMatchTaskInTaskList(task: Task, allTasks: Task[]): any;
             toMatchTask(task: Task): any;
             toMatchTaskFromLine(line: string): any;
             toMatchTaskWithDescription(description: string): any;
@@ -170,6 +173,14 @@ with filter: "${filter.instruction}"`,
     };
 }
 
+export function toMatchTaskInTaskList(filter: FilterOrErrorMessage, task: Task, allTasks: Task[]) {
+    // Make sure that the task being filtered is actually in allTasks,
+    // to guard against tests passing for the wrong reason:
+    expect(allTasks.includes(task)).toEqual(true);
+
+    return toMatchTaskWithSearchInfo(filter, task, SearchInfo.fromAllTasks(allTasks));
+}
+
 export function toMatchTask(filter: FilterOrErrorMessage, task: Task) {
     return toMatchTaskWithSearchInfo(filter, task, SearchInfo.fromAllTasks([task]));
 }
@@ -194,6 +205,10 @@ export function toMatchTaskWithHeading(filter: FilterOrErrorMessage, heading: st
 }
 
 export function toMatchTaskWithPath(filter: FilterOrErrorMessage, path: string) {
+    // Validate the path supplied. Obsidian vault paths do not begin with a '/',
+    // so check for any unrealistic examples in tests:
+    expect(path[0]).not.toBe('/');
+
     const builder = new TaskBuilder();
     const task = builder.path(path).build();
     return toMatchTask(filter, task);

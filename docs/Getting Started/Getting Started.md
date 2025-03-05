@@ -11,7 +11,7 @@ The simplest way to create a new task is to create a new checklist item.
 The markdown syntax for checklist items is a list item that starts with spaced brackets:
 
 ```text
-- [ ] take out the trash`
+- [ ] take out the trash
 ```
 
 Now Tasks tracks that you need to take out the trash!
@@ -137,6 +137,12 @@ This is because they will usually be displayed in a completely different order t
 
 ### Tasks in Blockquotes and Callouts
 
+<!-- force a blank line --><!-- include: snippet-callout-titles-bug.md -->
+
+> [!Warning] Warning: Obsidian bug in versions 1.6.0 to 1.6.3 has caused some tasks not to be found
+> See [[Missing tasks in callouts with some Obsidian 1.6.x versions]] for how to ==make Obsidian 1.6.5 fix its metadata cache==, in case it was broken by earlier 1.6.x versions.
+
+<!-- force a blank line --><!-- endInclude -->
 Tasks can read tasks that are inside [blockquotes](https://www.markdownguide.org/basic-syntax/#blockquotes-1) or [Obsidian's built-in callouts](https://help.obsidian.md/How+to/Use+callouts).
 
 > [!released]
@@ -166,11 +172,6 @@ We are tracking this in [issue #1989](https://github.com/obsidian-tasks-group/ob
 > Tasks cannot read tasks that are in **Obsidian Canvas cards**.
 
 We are tracking this in [issue #2100](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/2100).
-
-> [!warning]
-> Tasks sometimes prevents checking off/completing tasks in **Obsidian Canvas cards**.
-
-We are tracking this in [issue #2130](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/2130).
 
 ### Tasks in Code Blocks
 
@@ -231,7 +232,10 @@ This means that you can only put **block links** (`^link-name`) and **tags** aft
 
 We are tracking this in [issue #1505](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/1505).
 
-If you are concerned that some values in a task are not being parsed as you intended, perhaps because a task is not being found by Tasks searches, you can view the task in the [[Create or edit Task|‘Create or edit Task’ Modal]].
+If you are concerned that some values in a task are not being parsed as you intended, perhaps because a task is not being found by Tasks searches, you can:
+
+- view an individual task in the [[Create or edit Task|‘Create or edit Task’ Modal]]
+- search for all possible problems: see [[Find tasks with invalid data#Finding unread emojis|Finding unread emojis]].
 
 If there are any **Tasks emojis visible in the Description field**, close the modal and delete or move to the left any unrecognised text.
 

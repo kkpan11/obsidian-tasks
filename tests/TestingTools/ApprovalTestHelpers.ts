@@ -3,8 +3,9 @@ import { verify } from 'approvals/lib/Providers/Jest/JestApprovals';
 import type { GlobalFilter } from '../../src/Config/GlobalFilter';
 import type { GlobalQuery } from '../../src/Config/GlobalQuery';
 import { Query } from '../../src/Query/Query';
-import { explainResults } from '../../src/lib/QueryRendererHelper';
-import type { Task } from '../../src/Task';
+import { explainResults } from '../../src/Query/QueryRendererHelper';
+import type { Task } from '../../src/Task/Task';
+import { type OptionalTasksFile, TasksFile } from '../../src/Scripting/TasksFile';
 import { verifyMarkdown } from './VerifyMarkdown';
 
 export function printIteration<T1>(func: <T1>(t1: T1) => any, params1: T1[]): string {
@@ -85,15 +86,17 @@ export function verifyQueryExplanation(instructions: string, options?: Options):
  * @param instructions
  * @param globalFilter
  * @param globalQuery
- * @param options?
+ * @param options
+ * @param tasksFile
  */
 export function verifyTaskBlockExplanation(
     instructions: string,
     globalFilter: GlobalFilter,
     globalQuery: GlobalQuery,
     options?: Options,
+    tasksFile: OptionalTasksFile = new TasksFile('some/sample/file path.md'),
 ): void {
-    const explanation = explainResults(instructions, globalFilter, globalQuery, 'some/sample/file path.md');
+    const explanation = explainResults(instructions, globalFilter, globalQuery, tasksFile);
 
     verifyWithFileExtension(explanation, 'explanation.text', options);
 }

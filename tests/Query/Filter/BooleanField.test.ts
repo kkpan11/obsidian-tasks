@@ -6,6 +6,11 @@ import { BooleanField } from '../../../src/Query/Filter/BooleanField';
 import type { FilterOrErrorMessage } from '../../../src/Query/Filter/FilterOrErrorMessage';
 import { TaskBuilder } from '../../TestingTools/TaskBuilder';
 import { testFilter } from '../../TestingTools/FilterTestHelpers';
+import { Query } from '../../../src/Query/Query';
+import { Explainer } from '../../../src/Query/Explain/Explainer';
+import { BooleanPreprocessor } from '../../../src/Query/Filter/BooleanPreprocessor';
+import { TasksFile } from '../../../src/Scripting/TasksFile';
+import { verifyBooleanExpressionExplanation, verifyBooleanExpressionPreprocessing } from './BooleanFieldVerify';
 
 window.moment = moment;
 
@@ -21,14 +26,21 @@ function createValidFilter(instruction: string) {
     return new BooleanField().createFilterOrErrorMessage(instruction);
 }
 
-describe('boolean query', () => {
+describe('boolean query - filter', () => {
     // These tests are intended to be really simple, so it is easy to reason about the correct behaviour of the code.
     describe('basic operators', () => {
-        it('AND', () => {
+        it.each([
+            '(description includes d1) AND (description includes d2)',
+            '(description includes d1)AND(description includes d2)',
+            '[description includes d1] AND [description includes d2]',
+            '[description includes d1]AND[description includes d2]',
+            '{description includes d1} AND {description includes d2}',
+            '{description includes d1}AND{description includes d2}',
+            '"description includes d1" AND "description includes d2"',
+            '"description includes d1"AND"description includes d2"',
+        ])('instruction: "%s"', (line: string) => {
             // Arrange
-            const filter = createValidFilter(
-                '"description includes d1" AND "description includes d2"', // Use "..." instead of (), for completeness
-            );
+            const filter = createValidFilter(line);
 
             // Act, Assert
             testWithDescription(filter, 'neither', false);
@@ -111,196 +123,251 @@ describe('boolean query', () => {
             testWithDescription(filter, 'xxx #context/location1', true);
             testWithDescription(filter, 'xxx #context/location2', false);
         });
+
+        it('should work with single filter in heavily nested parentheses - via BooleanField', () => {
+            // Confirm that redundant () are ignored.
+            const filter = createValidFilter('(((((description includes #context/location1)))))');
+
+            testWithDescription(filter, 'xxx #context/location1', true);
+            testWithDescription(filter, 'xxx #context/location2', false);
+        });
+    });
+
+    describe('delimiters', () => {
+        function explanationOrError(filter: FilterOrErrorMessage) {
+            if (filter.filter) {
+                return filter.filter.explainFilterIndented('');
+            } else {
+                return filter.error;
+            }
+        }
+
+        describe('( and )', () => {
+            it('should allow ( and ) as delimiters around 1 filter', () => {
+                const filter = createValidFilter('(description includes #context/location1)');
+                expect(explanationOrError(filter)).toMatchInlineSnapshot(`
+                                    "(description includes #context/location1) =>
+                                      description includes #context/location1
+                                    "
+                            `);
+            });
+
+            it('should allow ( and ) as delimiters around 2 filters', () => {
+                const filter = createValidFilter(
+                    '(description includes #context/location1) OR (description includes #context/location2)',
+                );
+                expect(explanationOrError(filter)).toMatchInlineSnapshot(`
+                                    "(description includes #context/location1) OR (description includes #context/location2) =>
+                                      OR (At least one of):
+                                        description includes #context/location1
+                                        description includes #context/location2
+                                    "
+                            `);
+            });
+
+            it('should allow ( and ) as delimiters around 2 filters - with " inside', () => {
+                // This searches for words surrounded by double-quotes:
+                const filter = createValidFilter('(description includes "hello world") OR (description includes "42")');
+                expect(explanationOrError(filter)).toMatchInlineSnapshot(`
+                    "(description includes "hello world") OR (description includes "42") =>
+                      OR (At least one of):
+                        description includes "hello world"
+                        description includes "42"
+                    "
+                `);
+            });
+        });
+
+        describe('" and "', () => {
+            it('should allow " and " as delimiters around 1 filter', () => {
+                const filter = createValidFilter('"description includes #context/location1"');
+                expect(explanationOrError(filter)).toMatchInlineSnapshot(`
+                    ""description includes #context/location1" =>
+                      description includes #context/location1
+                    "
+                `);
+            });
+
+            it('should allow " and " as delimiters around 2 filters', () => {
+                const filter = createValidFilter(
+                    '"description includes #context/location1" OR "description includes #context/location2"',
+                );
+                expect(explanationOrError(filter)).toMatchInlineSnapshot(`
+                                    ""description includes #context/location1" OR "description includes #context/location2" =>
+                                      OR (At least one of):
+                                        description includes #context/location1
+                                        description includes #context/location2
+                                    "
+                            `);
+            });
+        });
+
+        describe('Mixed delimiters', () => {
+            it('should not allow a mixture of () and "" delimiters any more - breaking change in 7.0.0', () => {
+                const filter = new BooleanField().createFilterOrErrorMessage('(not done) AND "is recurring"');
+                expect(filter.error).toBeDefined();
+            });
+        });
     });
 
     describe('error cases - to show error messages', () => {
-        it('empty line', () => {
-            const filter = new BooleanField().createFilterOrErrorMessage('');
-            expect(filter.error).toStrictEqual('empty line');
-        });
+        it.each([
+            [
+                // force line break
+                '',
+                'empty line',
+            ],
 
-        it('Invalid AND', () => {
-            const filter = new BooleanField().createFilterOrErrorMessage('AND (description includes d1)');
-            expect(filter.error).toStrictEqual(
+            // Incorrect numbers of filters/sub-expressions
+            [
+                'AND (description includes d1)',
                 'malformed boolean query -- Invalid token (check the documentation for guidelines)',
-            );
-        });
-
-        it('Invalid OR', () => {
-            const filter = new BooleanField().createFilterOrErrorMessage('OR (description includes d1)');
-            expect(filter.error).toStrictEqual(
+            ],
+            [
+                'OR (description includes d1)',
                 'malformed boolean query -- Invalid token (check the documentation for guidelines)',
-            );
-        });
-
-        it('Invalid sub-expression', () => {
-            const filter = new BooleanField().createFilterOrErrorMessage('NOT (description blahblah d1)');
-            expect(filter.error).toStrictEqual("couldn't parse sub-expression 'description blahblah d1'");
-        });
-
-        it('Invalid sub-expression - gives error', () => {
-            const filter = new BooleanField().createFilterOrErrorMessage('NOT (happens before blahblahblah)');
-            expect(filter.error).toStrictEqual(
+            ],
+            [
+                // force line break
+                'NOT (description blahblah d1)',
+                "couldn't parse sub-expression 'description blahblah d1'",
+            ],
+            [
+                'NOT (happens before blahblahblah)',
                 "couldn't parse sub-expression 'happens before blahblahblah': do not understand happens date",
-            );
-        });
+            ],
+        ])(
+            'should report expected error message: on "%s" - expected "%s"',
+            (instruction: string, expectedError: string) => {
+                const filter = new BooleanField().createFilterOrErrorMessage(instruction);
+                expect(filter.error).toContain(expectedError);
+            },
+        );
 
         // Have not managed to create instructions that trigger these errors:
         //      result.error = 'empty operator in boolean query';
         //      result.error = `unknown boolean operator '${token.value}'`;
     });
+
+    describe('former error cases, that now work', () => {
+        it.each([
+            // Missing spaces before operator
+            ['(path includes a)AND (path includes b)'],
+            ['(path includes a)AND NOT(path includes b)'],
+            ['(path includes a)OR (path includes b)'],
+            ['(path includes a)OR NOT (path includes b)'],
+            ['(path includes a)XOR (path includes b)'],
+
+            // Missing spaces after operator
+            ['(path includes a) AND(path includes b)'],
+            ['(path includes a) AND NOT(path includes b)'],
+            ['(path includes a) OR(path includes b)'],
+            ['(path includes a) OR NOT(path includes b)'],
+            ['(path includes a) XOR(path includes b)'],
+            ['NOT(path includes b)'],
+        ])('should report expected error message: on "%s" - expected "%s"', (instruction: string) => {
+            const filter = new BooleanField().createFilterOrErrorMessage(instruction);
+            expect(filter.error).toBeUndefined();
+        });
+    });
 });
 
-describe('explain boolean queries', () => {
-    it('should explain Boolean AND', () => {
-        const instruction = '(description includes d1) AND (priority medium)';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        const expected = `AND (All of):
-  description includes d1
-  priority is medium`;
-        expect(filterOrMessage).toHaveExplanation(expected);
+describe('boolean query - explain', () => {
+    beforeAll(() => {
+        jest.useFakeTimers();
+        jest.setSystemTime(new Date('2024-04-07'));
     });
 
-    it('should explain Boolean OR', () => {
-        const instruction = '(description includes d1) OR (priority medium)';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        const expected = `OR (At least one of):
-  description includes d1
-  priority is medium`;
-        expect(filterOrMessage).toHaveExplanation(expected);
+    afterAll(() => {
+        jest.useRealTimers();
     });
 
-    it('should explain Boolean NOT', () => {
-        const instruction = 'NOT (description includes d1)';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        expect(filterOrMessage).toHaveExplanation('NOT:\n  description includes d1');
-    });
+    function explainFilters(indentationLevel: number, source: string) {
+        const indentation = ' '.repeat(indentationLevel);
+        const tasksFile = new TasksFile('some/sample/note.md');
+        const query1 = new Query(source, tasksFile);
+        return new Explainer(indentation).explainFilters(query1);
+    }
 
-    it('should explain Boolean XOR', () => {
-        const instruction = '(description includes d1) XOR (priority medium)';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        const expected = `XOR (Exactly one of):
-  description includes d1
-  priority is medium`;
-        expect(filterOrMessage).toHaveExplanation(expected);
-    });
-
-    it('should explain 2 Boolean ORs', () => {
-        const instruction = '(description includes d1) OR (description includes d2) OR (priority medium)';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        const expected = `OR (At least one of):
-  description includes d1
-  description includes d2
-  priority is medium`;
-        expect(filterOrMessage).toHaveExplanation(expected);
-    });
-
-    it('should explain 3 Boolean ANDs', () => {
-        const instruction = '(description includes 1) AND (description includes 2) AND (description includes 3)';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        expect(filterOrMessage.filter?.explanation.asString()).toMatchInlineSnapshot(`
-            "AND (All of):
-              description includes 1
-              description includes 2
-              description includes 3"
-        `);
-    });
-
-    it('should explain 9 Boolean ANDs', () => {
-        const instruction =
-            '(description includes 1) AND (description includes 2) AND (description includes 3) AND (description includes 4) AND (description includes 5) AND (description includes 6) AND (description includes 7) AND (description includes 8) AND (description includes 9)';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        expect(filterOrMessage.filter?.explanation.asString()).toMatchInlineSnapshot(`
-            "AND (All of):
-              description includes 1
-              description includes 2
-              description includes 3
-              description includes 4
-              description includes 5
-              description includes 6
-              description includes 7
-              description includes 8
-              description includes 9"
-        `);
-    });
-
-    it('( a && b ) && c', () => {
-        const instruction = '( (description includes a) AND (description includes b) ) AND (description includes c)';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        expect(filterOrMessage.filter?.explanation.asString()).toMatchInlineSnapshot(`
-            "AND (All of):
-              description includes a
-              description includes b
-              description includes c"
-        `);
-    });
-
-    it('a && ( b && c )', () => {
-        const instruction = '( description includes a ) AND ( (description includes b) AND (description includes c) )';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        expect(filterOrMessage.filter?.explanation.asString()).toMatchInlineSnapshot(`
-            "AND (All of):
-              description includes a
+    it('should explain [] delimiters', () => {
+        const line = '[due this week] AND [description includes I use square brackets]';
+        expect(explainFilters(0, line)).toMatchInlineSnapshot(`
+            "[due this week] AND [description includes I use square brackets] =>
               AND (All of):
-                description includes b
-                description includes c"
+                due this week =>
+                  due date is between:
+                    2024-04-01 (Monday 1st April 2024) and
+                    2024-04-07 (Sunday 7th April 2024) inclusive
+                description includes I use square brackets
+            "
         `);
     });
 
-    it('( a || b ) || c', () => {
-        const instruction = '( (description includes a) OR (description includes b) ) OR (description includes c)';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        expect(filterOrMessage.filter?.explanation.asString()).toMatchInlineSnapshot(`
-            "OR (At least one of):
-              description includes a
-              description includes b
-              description includes c"
-        `);
-    });
-
-    it('a || ( b || c )', () => {
-        const instruction = '( description includes a ) OR ( (description includes b) OR (description includes c) )';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        expect(filterOrMessage.filter?.explanation.asString()).toMatchInlineSnapshot(`
-            "OR (At least one of):
-              description includes a
-              OR (At least one of):
-                description includes b
-                description includes c"
-        `);
-    });
-
-    it('( a && b && c ) || ( d && e && f )', () => {
-        const instruction =
-            '( (description includes a) AND (description includes b) AND (description includes c) ) OR ( (description includes d) AND (description includes e) AND (description includes f) )';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        expect(filterOrMessage.filter?.explanation.asString()).toMatchInlineSnapshot(`
-            "OR (At least one of):
+    it('should explain {} delimiters', () => {
+        const line = '{due this week} AND {description includes I use curly braces}';
+        expect(explainFilters(0, line)).toMatchInlineSnapshot(`
+            "{due this week} AND {description includes I use curly braces} =>
               AND (All of):
-                description includes a
-                description includes b
-                description includes c
-              AND (All of):
-                description includes d
-                description includes e
-                description includes f"
+                due this week =>
+                  due date is between:
+                    2024-04-01 (Monday 1st April 2024) and
+                    2024-04-07 (Sunday 7th April 2024) inclusive
+                description includes I use curly braces
+            "
         `);
     });
 
-    it('( a || b || c ) && ( d || e || f )', () => {
-        const instruction =
-            '( (description includes a) OR (description includes b) OR (description includes c) ) AND ( (description includes d) OR (description includes e) OR (description includes f) )';
-        const filterOrMessage = new BooleanField().createFilterOrErrorMessage(instruction);
-        expect(filterOrMessage.filter?.explanation.asString()).toMatchInlineSnapshot(`
-            "AND (All of):
-              OR (At least one of):
-                description includes a
-                description includes b
-                description includes c
-              OR (At least one of):
-                description includes d
-                description includes e
-                description includes f"
+    it('should make multi-line explanations consistent in and out of Boolean filter - issue #2707', () => {
+        // See https://github.com/obsidian-tasks-group/obsidian-tasks/issues/2707
+        const filter = 'description regex matches /buy/i';
+
+        // A second filter, which contains filter1 embedded on a Boolean query:
+        const filter2 = `( ${filter} ) AND ( path includes {{query.file.path}} )`;
+
+        const filter1Explanation = explainFilters(4, filter);
+        const filter2Explanation = explainFilters(0, filter2);
+
+        // Ensure that the full standalone explanation of filter1 is present in its explanation in the Boolean query:
+        expect(filter2Explanation).toContain(filter1Explanation);
+
+        // These inline snapshots are provided for ease of visualising the behaviour:
+        expect(filter1Explanation).toMatchInlineSnapshot(`
+            "    description regex matches /buy/i =>
+                  using regex:            'buy' with flag 'i'
+            "
         `);
+
+        expect(filter2Explanation).toMatchInlineSnapshot(`
+            "( description regex matches /buy/i ) AND ( path includes {{query.file.path}} ) =>
+            ( description regex matches /buy/i ) AND ( path includes some/sample/note.md ) =>
+              AND (All of):
+                description regex matches /buy/i =>
+                  using regex:            'buy' with flag 'i'
+                path includes some/sample/note.md
+            "
+        `);
+    });
+});
+
+describe('boolean query - exhaustive tests', () => {
+    beforeAll(() => {
+        jest.useFakeTimers();
+        jest.setSystemTime(new Date('2024-03-28'));
+    });
+
+    afterAll(() => {
+        jest.useRealTimers();
+    });
+
+    it('preprocess - split line', () => {
+        verifyBooleanExpressionPreprocessing(BooleanPreprocessor.splitLine);
+    });
+
+    it('preprocess - rewrite', () => {
+        verifyBooleanExpressionPreprocessing(BooleanPreprocessor.preprocessExpression);
+    });
+
+    it('explain', () => {
+        verifyBooleanExpressionExplanation();
     });
 });

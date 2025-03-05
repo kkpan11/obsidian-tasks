@@ -1,26 +1,28 @@
 import { MenuItem, Notice } from 'obsidian';
 import type { Moment, unitOfTime } from 'moment/moment';
-import type { Task } from '../../Task';
+import type { Task } from '../../Task/Task';
 import {
-    type HappensDate,
     createFixedDateTask,
     createPostponedTask,
+    createTaskWithDateRemoved,
     fixedDateMenuItemTitle,
     getDateFieldToPostpone,
     postponeMenuItemTitle,
     postponementSuccessMessage,
-} from '../../Scripting/Postponer';
+    removeDateMenuItemTitle,
+} from '../../DateTime/Postponer';
+import type { HappensDate } from '../../DateTime/DateFieldTypes';
 import { TaskEditingMenu, type TaskSaver, defaultTaskSaver } from './TaskEditingMenu';
 
 type NamingFunction = (task: Task, amount: number, timeUnit: unitOfTime.DurationConstructor) => string;
 
-type PostponingFunction = (
+export type PostponingFunction = (
     task: Task,
     dateFieldToPostpone: HappensDate,
     timeUnit: unitOfTime.DurationConstructor,
     amount: number,
 ) => {
-    postponedDate: moment.Moment;
+    postponedDate: moment.Moment | null;
     postponedTask: Task;
 };
 
@@ -36,11 +38,24 @@ export class PostponeMenu extends TaskEditingMenu {
             itemNamingFunction: NamingFunction,
             postponingFunction: PostponingFunction,
         ) => {
+            // TODO some of the code below is duplicated in postponeOnClickCallback() and may be refactored
+            let isCurrentValue = false;
+            const dateFieldToPostpone = getDateFieldToPostpone(task);
+            if (dateFieldToPostpone) {
+                const { postponedDate } = postponingFunction(task, dateFieldToPostpone, timeUnit, amount);
+
+                if (task[dateFieldToPostpone]?.isSame(postponedDate, 'day')) {
+                    isCurrentValue = true;
+                }
+            }
+
             const title = itemNamingFunction(task, amount, timeUnit);
-            // TODO Call setChecked() to put a checkmark against the item, if it represents the current task field value.
-            item.setTitle(title).onClick(() =>
-                PostponeMenu.postponeOnClickCallback(button, task, amount, timeUnit, postponingFunction, taskSaver),
-            );
+
+            item.setChecked(isCurrentValue)
+                .setTitle(title)
+                .onClick(() =>
+                    PostponeMenu.postponeOnClickCallback(button, task, amount, timeUnit, postponingFunction, taskSaver),
+                );
         };
 
         const fixedTitle = fixedDateMenuItemTitle;
@@ -64,6 +79,12 @@ export class PostponeMenu extends TaskEditingMenu {
         this.addItem((item) => postponeMenuItemCallback(button, item, 'weeks', 2, titlingFunction, postponingFunction));
         this.addItem((item) => postponeMenuItemCallback(button, item, 'weeks', 3, titlingFunction, postponingFunction));
         this.addItem((item) => postponeMenuItemCallback(button, item, 'month', 1, titlingFunction, postponingFunction));
+
+        this.addSeparator();
+
+        this.addItem((item) =>
+            postponeMenuItemCallback(button, item, 'days', 2, removeDateMenuItemTitle, createTaskWithDateRemoved),
+        );
     }
 
     public static async postponeOnClickCallback(
@@ -82,6 +103,10 @@ export class PostponeMenu extends TaskEditingMenu {
 
         const { postponedDate, postponedTask } = postponingFunction(task, dateFieldToPostpone, timeUnit, amount);
 
+        if (task[dateFieldToPostpone]?.isSame(postponedDate, 'day')) {
+            return;
+        }
+
         await taskSaver(task, postponedTask);
         PostponeMenu.postponeSuccessCallback(button, dateFieldToPostpone, postponedDate);
     }
@@ -89,7 +114,7 @@ export class PostponeMenu extends TaskEditingMenu {
     private static postponeSuccessCallback(
         button: HTMLAnchorElement,
         updatedDateType: HappensDate,
-        postponedDate: Moment,
+        postponedDate: Moment | null,
     ) {
         // Disable the button to prevent update error due to the task not being reloaded yet.
         button.style.pointerEvents = 'none';

@@ -1,7 +1,8 @@
 import { TaskBuilder } from '../../TestingTools/TaskBuilder';
 import { FilenameField } from '../../../src/Query/Filter/FilenameField';
 import * as CustomMatchersForSorting from '../../CustomMatchers/CustomMatchersForSorting';
-import { SampleTasks, fromLine } from '../../TestHelpers';
+import { fromLine } from '../../TestingTools/TestHelpers';
+import { SampleTasks } from '../../TestingTools/SampleTasks';
 
 describe('filename', () => {
     it('should provide access to the file name with extension', () => {
@@ -31,8 +32,8 @@ describe('filename', () => {
         // Assert
         expect(filter).toBeValid();
         expect(filter).not.toMatchTaskWithPath('');
-        expect(filter).toMatchTaskWithPath('/some/path/SeArch_Text.md');
-        expect(filter).not.toMatchTaskWithPath('/other/search_text/file.md'); // Ignores text in folder names
+        expect(filter).toMatchTaskWithPath('some/path/SeArch_Text.md');
+        expect(filter).not.toMatchTaskWithPath('other/search_text/file.md'); // Ignores text in folder names
     });
 
     it('by filename (does not include)', () => {
@@ -42,8 +43,8 @@ describe('filename', () => {
         // Assert
         expect(filter).toBeValid();
         expect(filter).toMatchTaskWithPath('');
-        expect(filter).toMatchTaskWithPath('/other/search_text/file.md'); // Ignores text in folder names
-        expect(filter).not.toMatchTaskWithPath('/SoMe/PaTh/SeArcH_Text.md');
+        expect(filter).toMatchTaskWithPath('other/search_text/file.md'); // Ignores text in folder names
+        expect(filter).not.toMatchTaskWithPath('SoMe/PaTh/SeArcH_Text.md');
     });
 
     it('by filename (regex matches)', () => {
@@ -52,8 +53,8 @@ describe('filename', () => {
 
         // Assert
         expect(filter).toBeValid();
-        expect(filter).toMatchTaskWithPath('/some/path/wibble.md');
-        expect(filter).not.toMatchTaskWithPath('/some/wibble/filename.md');
+        expect(filter).toMatchTaskWithPath('some/path/wibble.md');
+        expect(filter).not.toMatchTaskWithPath('some/wibble/filename.md');
     });
 
     it('by filename (regex does not match)', () => {
@@ -64,8 +65,8 @@ describe('filename', () => {
 
         // Assert
         expect(filter).toBeValid();
-        expect(filter).toMatchTaskWithPath('/some/wobble/path name.md');
-        expect(filter).not.toMatchTaskWithPath('/some/path/wibble.md');
+        expect(filter).toMatchTaskWithPath('some/wobble/path name.md');
+        expect(filter).not.toMatchTaskWithPath('some/path/wibble.md');
     });
 });
 
