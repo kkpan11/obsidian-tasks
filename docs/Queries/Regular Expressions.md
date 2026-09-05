@@ -150,6 +150,25 @@ Implementation details:
 Please be aware of the following limitations in Tasks' implementation of regular expression searching:
 
 - [Lookahead and Lookbehind](https://www.regular-expressions.info/lookaround.html) searches are untested, and are presumed not to work on Apple mobile devices, or to cause serious performance problems with slow searches.
+- Since Tasks 8.3.0:
+  - the maximum allowed length of regular expression search strings is now 500 characters.
+  - code has been added to prevent malicious searches (accidental or intentional) from freezing Obsidian by [Catastrophic Backtracking](https://www.regular-expressions.info/catastrophic.html).
+
+## Support
+
+Before creating a new bug report or feature request about Regular Expressions, please check existing items to avoid duplicates.
+
+You do not need to search manually: the links below are already filtered to the label `"scope: regex filters"`.
+
+- Check both Open and Closed items.
+- If you find an existing item, support it there instead of adding a `+1` comment. See [[About Support and Help#How to support an existing request|How to support an existing request]].
+
+| Type | Open | Closed | Notes |
+| --- | --- | --- | --- |
+| Issues | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aopen%20label%3A%22scope%3A+regex+filters%22%20is%3Aissue%20) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aclosed%20label%3A%22scope%3A+regex+filters%22%20is%3Aissue%20) | bug reports and feature requests |
+| Discussions | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aopen+label%3A%22scope%3A+regex+filters%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aclosed+label%3A%22scope%3A+regex+filters%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | older feature discussions from before late 2022 |
+
+If you do not find an existing item in Issues or Discussions, see [[About Support and Help]] for how to report a bug or request a feature.
 
 ## Regular expression examples
 

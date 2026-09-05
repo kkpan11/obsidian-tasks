@@ -1,4 +1,4 @@
-# Review and check your Statuses
+# Review and check your statuses
 
 ## About this file
 
@@ -7,7 +7,7 @@ This file was created by the Obsidian Tasks plugin (version x.y.z) to help visua
 If you change the Tasks status settings, you can get an updated report by:
 
 - Going to `Settings` -> `Tasks`.
-- Clicking on `Review and check your Statuses`.
+- Clicking on `Review and check your statuses`.
 
 You can delete this file any time.
 
@@ -45,6 +45,7 @@ classDef DONE        stroke:#0c0,stroke-width:3px;
 classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
 classDef CANCELLED   stroke:#ddd,stroke-width:3px;
 classDef NON_TASK    stroke:#99e,stroke-width:3px;
+classDef ON_HOLD     stroke:#00f,stroke-width:3px;
 
 1["'Todo'<br>[ ] -> [x]<br>(TODO)"]:::TODO
 2["'Done'<br>[x] -> [ ]<br>(DONE)"]:::DONE

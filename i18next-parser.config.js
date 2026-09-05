@@ -2,11 +2,18 @@ module.exports = {
     input: ['src/**/*.{ts,svelte}'], // Scan relevant files
     output: 'src/i18n/locales/$LOCALE.json', // Output files
     locales: [
-        // Supported locales, in alphabetical order
+        // Supported locales, in alphabetical order of the .json file names in src/i18n/locales/
         'be',
+        'de',
         'en',
+        'es',
+        'fr',
+        'ko',
+        'pt_br',
         'ru',
+        'tr',
         'uk',
+        'vi',
         'zh_cn',
     ],
     defaultNamespace: 'translation',

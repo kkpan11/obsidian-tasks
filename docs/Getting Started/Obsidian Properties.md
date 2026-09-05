@@ -77,6 +77,29 @@ filter by function task.file.property('tags').includes('#sample-tag')
 
 Note that this is an exact tag search. It will not match `#sample-tag/some-sub-tag`.
 
+#### Show tasks from files with a specific tag in frontmatter - starting with a substring
+
+For finding tags *beginning* with a particular string, we have to test each individual tag value, specifying the leading `#`:
+
+```javascript
+filter by function task.file.property('tags').some(tag => tag.includes('#sample/'))
+```
+
+An example of a frontmatter section that will be found by this search:
+
+```yaml
+tags:
+  - sample/tag/value
+```
+
+#### Show tasks from files with a specific tag in frontmatter - substring in any position
+
+For finding tags with a particular string *anywhere*, we have to test each individual tag value, without the leading `#`:
+
+```javascript
+filter by function task.file.property('tags').some(tag => tag.includes('/tag/'))
+```
+
 #### Do not show any tasks from files with a specific tag in frontmatter
 
 ```javascript
@@ -187,8 +210,7 @@ group by function \
 
 Consider a file with the following example properties (or "Frontmatter"):
 
-<!-- TODO this was copied from docs_sample_for_task_properties_reference.md - embed the content automatically in future... -->
-
+<!-- snippet: DocsSamplesForDefaults.test.DocsSamplesForDefaults_interpret_properties.approved.yaml -->
 ```yaml
 ---
 sample_checkbox_property: true
@@ -214,8 +236,14 @@ tags:
   - tag-from-file-properties
 creation date: 2024-05-25T15:17:00
 project: Secret Project
+nested_data:
+  surname: "Doe"
+  firstname: "Jane"
+  middle name: "Frances"
+object_serialization: {"nested1": "value1", "nested2": "value2"}
 ---
 ```
+<!-- endSnippet -->
 
 The following table shows how most of those properties are interpreted in Tasks queries:
 
@@ -235,6 +263,11 @@ The following table shows how most of those properties are interpreted in Tasks 
 | `task.file.property('sample_link_property')` | `string` | `'[[yaml_all_property_types_populated]]'` |
 | `task.file.property('sample_link_list_property')` | `string[]` | `['[[yaml_all_property_types_populated]]', '[[yaml_all_property_types_empty]]']` |
 | `task.file.property('tags')` | `string[]` | `['#tag-from-file-properties']` |
+| `task.file.property('nested_data').surname` | `string` | `'Doe'` |
+| `task.file.property('nested_data').firstname` | `string` | `'Jane'` |
+| `task.file.property('nested_data')['middle name']` | `string` | `'Frances'` |
+| `task.file.property('object_serialization').nested1` | `string` | `'value1'` |
+| `task.file.property('object_serialization').nested2` | `string` | `'value2'` |
 
 <!-- placeholder to force blank line after included text --><!-- endInclude -->
 
@@ -288,3 +321,19 @@ It can be used in queries in several ways:
 >
 > - in text instructions, the string used is currently `null`, which is not likely to be the intent
 > - in numeric instructions, the value used is `null` which gives an error
+
+## Support
+
+Before creating a new bug report or feature request about Obsidian Properties, please check existing items to avoid duplicates.
+
+You do not need to search manually: the links below are already filtered to the label `"scope: frontmatter"`.
+
+- Check both Open and Closed items.
+- If you find an existing item, support it there instead of adding a `+1` comment. See [[About Support and Help#How to support an existing request|How to support an existing request]].
+
+| Type | Open | Closed | Notes |
+| --- | --- | --- | --- |
+| Issues | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aopen%20label%3A%22scope%3A+frontmatter%22%20is%3Aissue%20) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aclosed%20label%3A%22scope%3A+frontmatter%22%20is%3Aissue%20) | bug reports and feature requests |
+| Discussions | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aopen+label%3A%22scope%3A+frontmatter%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aclosed+label%3A%22scope%3A+frontmatter%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | older feature discussions from before late 2022 |
+
+If you do not find an existing item in Issues or Discussions, see [[About Support and Help]] for how to report a bug or request a feature.

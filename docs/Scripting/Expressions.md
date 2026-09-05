@@ -9,6 +9,11 @@ publish: true
 > [!released]
 > Expressions were introduced in Tasks 4.0.0.
 
+> [!warning] JavaScript must be enabled
+> This facility executes JavaScript and requires [[JavaScript in Tasks Queries|JavaScript in Tasks queries]] to be enabled.
+> Only enable it if you trust the current and future contents of the vault.
+> This requirement was added in Tasks 8.0.0.
+
 ## Introduction
 
 > [!Note]
@@ -86,6 +91,8 @@ As of Tasks 4.4.0, it is also possible to use more complex constructs in express
 - `if` statements
 - functions
 
+Note in the examples below that if `return` appears anywhere in the expression, you must write your own `return` statement, to prevent the result being `undefined`.
+
 As of Tasks 5.0.0, it is also possible to make longer expressions more readable using [[Line Continuations|line continuations]].
 
 <!-- placeholder to force blank line before included text --><!-- include: Expression.test.Expression_returns_and_functions.approved.md -->
@@ -96,6 +103,12 @@ return 42
 
 const x = 1 + 1; return x * x
 => 4
+
+'any text that contains the word return'
+=> undefined
+
+return 'any text that contains the word return'
+=> 'any text that contains the word return'
 
 if (1 === 1) { return "yes"; } else { return "no" }
 => 'yes'

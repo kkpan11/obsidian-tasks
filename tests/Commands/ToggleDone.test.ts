@@ -93,47 +93,107 @@ describe('ToggleDone', () => {
     // Most of the tests are run twice. The second time, they are tested with tasks that
     // do not match the global filter.
 
-    it('should add hyphen and space to empty line', () => {
-        testToggleLine('|', '- |');
-        testToggleLine('foo|bar', '- foobar|');
+    it('should add checkbox to empty line, and lines without list items', () => {
+        testToggleLine('|', '- [ ] |');
+        testToggleLine('foo|bar', '- [ ] foobar|');
 
         GlobalFilter.getInstance().set('#task');
 
-        testToggleLine('|', '- |');
-        testToggleLine('foo|bar', '- foobar|');
+        testToggleLine('|', '- [ ] |');
+        testToggleLine('foo|bar', '- [ ] foobar|');
     });
 
     it('should add checkbox to hyphen and space', () => {
         testToggleLine('|- ', '- [ ] |');
         testToggleLine('- |', '- [ ] |');
-        testToggleLine('- |foobar', '- [ ] foobar|');
+        testToggleLine('1. |foobar', '1. [ ] foobar|');
 
         GlobalFilter.getInstance().set('#task');
 
         testToggleLine('|- ', '- [ ] |');
         testToggleLine('- |', '- [ ] |');
-        testToggleLine('- |foobar', '- [ ] foobar|');
+        testToggleLine('1. |foobar', '1. [ ] foobar|');
     });
 
     it('should complete a task', () => {
         testToggleLine('|- [ ] ', '|- [x]  ✅ 2022-09-04');
         testToggleLine('- [ ] |', '- [x] | ✅ 2022-09-04');
+        testToggleLine('- [ ] description|', '- [x] description| ✅ 2022-09-04');
 
         // Issue #449 - cursor jumped 13 characters to the right on completion
         testToggleLine('- [ ] I have a |proper description', '- [x] I have a |proper description ✅ 2022-09-04');
 
         GlobalFilter.getInstance().set('#task');
 
+        // Done date is not added if task does not match global filter
         testToggleLine('|- [ ] ', '|- [x] ');
-        testToggleLine('- [ ] |', '- [x] |');
+        testToggleLine('1. [ ] |', '1. [x] |');
+
+        // Done date is added if task does not match global filter
+        testToggleLine('- [ ] #task|', '- [x] #task| ✅ 2022-09-04');
+        testToggleLine('* [ ] #task description|', '* [x] #task description| ✅ 2022-09-04');
 
         // Issue #449 - cursor jumped 13 characters to the right on completion
         testToggleLine('- [ ] I have a |proper description', '- [x] I have a |proper description');
     });
 
+    describe('tag-only descriptions', () => {
+        it('should not add a space when completing a task without a global filter', () => {
+            testToggleLine('- [ ] #tag|', '- [x] #tag| ✅ 2022-09-04');
+        });
+
+        it('should not add a space when un-completing a task without a global filter', () => {
+            testToggleLine('- [x] #tag ✅ 2022-09-04|', '- [ ] #tag|');
+        });
+
+        it('should not add a space when completing a task that matches the global filter', () => {
+            GlobalFilter.getInstance().set('#task');
+            testToggleLine('- [ ] #task|', '- [x] #task| ✅ 2022-09-04');
+        });
+
+        it('should not add a space when un-completing a task that matches the global filter', () => {
+            GlobalFilter.getInstance().set('#task');
+            testToggleLine('- [x] #task ✅ 2022-09-04|', '- [ ] #task|');
+        });
+
+        it('should preserve spacing when a task does not match the global filter', () => {
+            GlobalFilter.getInstance().set('#task');
+            testToggleLine('- [ ] #other|', '- [x] #other|');
+            testToggleLine('- [x] #other|', '- [ ] #other|');
+        });
+    });
+
+    describe('trailing spaces', () => {
+        it('should discard single trailing space when toggling a task', () => {
+            const incomplete = '- [ ] foo';
+            const complete = '- [x] foo ✅ 2022-09-04';
+
+            expect(toggleLine(incomplete + ' ', 'x.md').text).toStrictEqual(complete);
+            expect(toggleLine(complete + ' ', 'x.md').text).toStrictEqual(incomplete);
+        });
+
+        it('should preserve Markdown hard-break of 2 spaces when toggling a task', () => {
+            const hardBreak = '  ';
+            const incomplete = `- [ ] foo${hardBreak}`;
+            const complete = `- [x] foo ✅ 2022-09-04${hardBreak}`;
+
+            expect(toggleLine(incomplete, 'x.md').text).toStrictEqual(complete);
+            expect(toggleLine(complete, 'x.md').text).toStrictEqual(incomplete);
+        });
+
+        it('should preserve Markdown hard-break of 3 spaces when toggling a task', () => {
+            const hardBreak = '   ';
+            const incomplete = `- [ ] foo${hardBreak}`;
+            const complete = `- [x] foo ✅ 2022-09-04${hardBreak}`;
+
+            expect(toggleLine(incomplete, 'x.md').text).toStrictEqual(complete);
+            expect(toggleLine(complete, 'x.md').text).toStrictEqual(incomplete);
+        });
+    });
+
     it('should un-complete a completed task', () => {
         testToggleLine('|- [x]  ✅ 2022-09-04', '|- [ ] ');
-        testToggleLine('- [x]  ✅ 2022-09-04|', '- [ ] |');
+        testToggleLine('1. [x]  ✅ 2022-09-04|', '1. [ ] |');
 
         // Issue #449 - cursor jumped 13 characters to the left on un-completion
         testToggleLine('- [x] I have a proper description| ✅ 2022-09-04', '- [ ] I have a proper description|');
@@ -142,7 +202,11 @@ describe('ToggleDone', () => {
 
         // Done date is not removed if task does not match global filter
         testToggleLine('|- [x]  ✅ 2022-09-04', '|- [ ] ✅ 2022-09-04');
-        testToggleLine('- [x]  ✅ 2022-09-04|', '- [ ] ✅ 2022-09-04|');
+        testToggleLine('+ [x]  ✅ 2022-09-04|', '+ [ ] ✅ 2022-09-04|');
+
+        // Done date is added if task matches the global filter
+        testToggleLine('|- [x] #task ✅ 2022-09-04', '|- [ ] #task');
+        testToggleLine('1. [x] #task description ✅ 2022-09-04|', '1. [ ] #task description|');
 
         // Issue #449 - cursor jumped 13 characters to the left on un-completion
         testToggleLine(
@@ -258,10 +322,10 @@ describe('ToggleDone', () => {
 
             // Assert
             const line2 = toggleLine(line1, 'x.md').text;
-            expect(line2).toStrictEqual('- [C] this is a task starting at Pro, not matching the global filter');
+            expect(line2).toStrictEqual('- [ ] this is a task starting at Pro, not matching the global filter');
 
             const line3 = toggleLine(line2, 'x.md').text;
-            expect(line3).toStrictEqual('- [P] this is a task starting at Pro, not matching the global filter');
+            expect(line3).toStrictEqual('- [x] this is a task starting at Pro, not matching the global filter');
         });
     });
 

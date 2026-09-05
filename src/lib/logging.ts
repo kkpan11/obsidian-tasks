@@ -1,4 +1,3 @@
-import { Platform, Plugin } from 'obsidian';
 /*
  * EventEmitter2 is an implementation of the EventEmitter module found in Node.js.
  * In addition to having a better benchmark performance than EventEmitter and being
@@ -33,7 +32,7 @@ export interface LogEntry {
     module: string;
     location?: string;
     message: string;
-    objects: any;
+    objects: unknown;
 }
 
 /**
@@ -210,7 +209,7 @@ export class Logger {
      * @param logLevel
      * @param message
      */
-    public log(logLevel: string, message: string, objects?: any): void {
+    public log(logLevel: string, message: string, objects?: unknown): void {
         const level = this.levelToInt(logLevel);
         if (level < this.minLevel) return;
 
@@ -238,19 +237,19 @@ export class Logger {
         this.logManager.emit('log', logEntry);
     }
 
-    public trace(message: string, objects?: any): void {
+    public trace(message: string, objects?: unknown): void {
         this.log('trace', message, objects);
     }
-    public debug(message: string, objects?: any): void {
+    public debug(message: string, objects?: unknown): void {
         this.log('debug', message, objects);
     }
-    public info(message: string, objects?: any): void {
+    public info(message: string, objects?: unknown): void {
         this.log('info', message, objects);
     }
-    public warn(message: string, objects?: any): void {
+    public warn(message: string, objects?: unknown): void {
         this.log('warn', message, objects);
     }
-    public error(message: string, objects?: any): void {
+    public error(message: string, objects?: unknown): void {
         this.log('error', message, objects);
     }
 
@@ -259,7 +258,7 @@ export class Logger {
      * @param logLevel
      * @param message
      */
-    public logWithId(logLevel: string, traceId: string, message: string, objects?: any): void {
+    public logWithId(logLevel: string, traceId: string, message: string, objects?: unknown): void {
         const level = this.levelToInt(logLevel);
         if (level < this.minLevel) return;
 
@@ -274,19 +273,19 @@ export class Logger {
         this.logManager.emit('log', logEntry);
     }
 
-    public traceWithId(traceId: string, message: string, objects?: any): void {
+    public traceWithId(traceId: string, message: string, objects?: unknown): void {
         this.logWithId('trace', traceId, message, objects);
     }
-    public debugWithId(traceId: string, message: string, objects?: any): void {
+    public debugWithId(traceId: string, message: string, objects?: unknown): void {
         this.logWithId('debug', traceId, message, objects);
     }
-    public infoWithId(traceId: string, message: string, objects?: any): void {
+    public infoWithId(traceId: string, message: string, objects?: unknown): void {
         this.logWithId('info', traceId, message, objects);
     }
-    public warnWithId(traceId: string, message: string, objects?: any): void {
+    public warnWithId(traceId: string, message: string, objects?: unknown): void {
         this.logWithId('warn', traceId, message, objects);
     }
-    public errorWithId(traceId: string, message: string, objects?: any): void {
+    public errorWithId(traceId: string, message: string, objects?: unknown): void {
         this.logWithId('error', traceId, message, objects);
     }
 }
@@ -308,10 +307,10 @@ const timingMap: TimingMap = {};
  *
  * @return {*}
  */
-export const logCall = (target: Object, propertyKey: string, descriptor: PropertyDescriptor) => {
-    const originalMethod = descriptor.value;
+export const logCall = (target: object, propertyKey: string, descriptor: PropertyDescriptor) => {
+    const originalMethod = descriptor.value as (...args: unknown[]) => unknown;
     //const logger = logging.getLogger('taskssql.perf');
-    descriptor.value = function (...args: any[]) {
+    descriptor.value = function (...args: unknown[]) {
         const startTime = new Date(Date.now());
         const result = originalMethod.apply(this, args);
         const endTime = new Date(Date.now());
@@ -343,11 +342,11 @@ export const logCall = (target: Object, propertyKey: string, descriptor: Propert
 };
 
 export function logCallDetails() {
-    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-        const originalMethod = descriptor.value;
+    return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
+        const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
         const logger = logging.getLogger('tasks');
 
-        descriptor.value = async function (...args: any[]) {
+        descriptor.value = async function (...args: unknown[]) {
             const startTime = new Date(Date.now());
             const result = await originalMethod.apply(this, args);
             const endTime = new Date(Date.now());
@@ -392,36 +391,4 @@ export function log(logLevel: TLogLevelName, message: string) {
         default:
             break;
     }
-}
-
-/**
- * This allows the plugin to be debugged in a mobile application
- * add it when debugging on a device. Not meant to be used by
- * end users. Add it into main.ts and remove before you commit.
- *
- * @param {Plugin} plugin
- * @return {*}
- */
-export function monkeyPatchConsole(plugin: Plugin) {
-    if (!Platform.isMobile) {
-        return;
-    }
-
-    const logFile = `${plugin.manifest.dir}/tasks-logs.txt`;
-    const logs: string[] = [];
-    const logMessages =
-        (prefix: string) =>
-        (...messages: unknown[]) => {
-            logs.push(`\n[${prefix}]`);
-            for (const message of messages) {
-                logs.push(String(message));
-            }
-            plugin.app.vault.adapter.write(logFile, logs.join(' '));
-        };
-
-    console.debug = logMessages('debug');
-    console.error = logMessages('error');
-    console.info = logMessages('info');
-    console.log = logMessages('log');
-    console.warn = logMessages('warn');
 }

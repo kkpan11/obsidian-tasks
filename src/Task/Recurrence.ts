@@ -1,6 +1,3 @@
-// begin-snippet: declare-Moment-type-in-src
-import type { Moment } from 'moment';
-// end-snippet
 import { RRule } from 'rrule';
 import type { Occurrence } from './Occurrence';
 
@@ -48,12 +45,9 @@ export class Recurrence {
                     occurrence,
                 });
             }
-        } catch (e) {
+        } catch {
             // Could not read recurrence rule. User possibly not done typing.
-            // Print error message, as it is useful if a test file has not set up window.moment
-            if (e instanceof Error) {
-                console.log(e.message);
-            }
+            return null;
         }
 
         return null;
@@ -72,16 +66,15 @@ export class Recurrence {
      * Returns the dates of the next occurrence or null if there is no next occurrence.
      *
      * @param today - Optional date representing the completion date. Defaults to today.
-     * @param removeScheduledDate - Optional boolean to remove the scheduled date from the next occurrence so long as a start or due date exists.
      */
-    public next(today = window.moment(), removeScheduledDate: boolean = false): Occurrence | null {
+    public next(today = window.moment()): Occurrence | null {
         const nextReferenceDate = this.nextReferenceDate(today);
 
         if (nextReferenceDate === null) {
             return null;
         }
 
-        return this.occurrence.next(nextReferenceDate, removeScheduledDate);
+        return this.occurrence.next(nextReferenceDate);
     }
 
     public identicalTo(other: Recurrence) {

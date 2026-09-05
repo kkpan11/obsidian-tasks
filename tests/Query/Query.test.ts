@@ -3,7 +3,6 @@
  */
 import moment from 'moment';
 import { Query } from '../../src/Query/Query';
-import { TasksFile } from '../../src/Scripting/TasksFile';
 import { Status } from '../../src/Statuses/Status';
 import { Task } from '../../src/Task/Task';
 import { OnCompletion } from '../../src/Task/OnCompletion';
@@ -22,8 +21,8 @@ import { shouldSupportFiltering } from '../TestingTools/FilterTestHelpers';
 import { TaskBuilder } from '../TestingTools/TaskBuilder';
 import { Priority } from '../../src/Task/Priority';
 import { TaskLayoutComponent } from '../../src/Layout/TaskLayoutOptions';
-import query_using_properties from '../Obsidian/__test_data__/query_using_properties.json';
 import { getTasksFileFromMockData } from '../TestingTools/MockDataHelpers';
+import { createTestTasksFile } from '../TestingTools/TasksFileHelpers';
 
 window.moment = moment;
 
@@ -45,7 +44,7 @@ function sortInstructionLines(filters: ReadonlyArray<string>) {
 
 function isValidQueryFilter(filter: string) {
     // Arrange
-    const query = new Query(filter);
+    const query = new Query(filter, createTestTasksFile('anywhere.md'));
 
     // Assert
     expect(query.error).toBeUndefined();
@@ -114,7 +113,7 @@ description includes Simple Line
 description includes \
     from a Continuation Line
         `;
-        const query = new Query(source, new TasksFile('test.md'));
+        const query = new Query(source, createTestTasksFile('test.md'));
         expect(query.error).toBeUndefined();
         const statements = query.statements;
         expect(statements.length).toEqual(3);
@@ -129,6 +128,7 @@ description includes \
         '"due this week" AND "description includes Hello World"',
         '(due this week) AND (description includes Hello World)',
         '[due this week] AND [description includes Hello World]',
+        '{{preset.this_file}}',
         '{due this week} AND {description includes Hello World}',
         'cancelled after 2021-12-27',
         'cancelled before 2021-12-27',
@@ -160,7 +160,8 @@ description includes \
         'due this week',
         'exclude sub-items',
         'filename includes wibble',
-        'filter by function task.isDone', // This cannot contain any () because of issue #1500
+        'filter by function task.due.formatAsDate().includes("2024");', // The trailing ';' prevents 'Could not interpret the following instruction as a Boolean combination'
+        'filter by function task.isDone',
         'folder does not include some/path',
         'folder includes AND', // Verify Query doesn't confuse this with a boolean query
         'folder includes some/path',
@@ -206,6 +207,7 @@ description includes \
         'path does not include some/path',
         'path includes AND', // Verify Query doesn't confuse this with a boolean query
         'path includes some/path',
+        'preset this_folder',
         'priority is above none',
         'priority is below none',
         'priority is high',
@@ -242,6 +244,14 @@ description includes \
         'tags include sometag',
     ];
 
+    const notValidWhenCapitalised: ReadonlyArray<string> = filters.filter((line) =>
+        ['preset ', '{{preset.'].some((prefix) => line.startsWith(prefix)),
+    );
+
+    const notValidInBoolean: ReadonlyArray<string> = filters.filter((line) =>
+        ['preset '].some((prefix) => line.startsWith(prefix)),
+    );
+
     /**
      * As more and more filters are added via the Field class, and tested
      * outside of this test file, there is the chance that someone thinks that
@@ -257,6 +267,11 @@ description includes \
     describe('should recognise every supported filter', () => {
         test.concurrent.each<string>(filters)('recognises %j', (filter) => {
             isValidQueryFilter(filter);
+
+            if (notValidWhenCapitalised.includes(filter)) {
+                return;
+            }
+
             isValidQueryFilter(filter.toUpperCase());
         });
 
@@ -299,6 +314,10 @@ description includes \
         });
         const searchInfo = SearchInfo.fromAllTasks([task]);
         test.concurrent.each<string>(filters)('sub-query %j is recognized inside a boolean query', (filter) => {
+            if (notValidInBoolean.includes(filter)) {
+                return;
+            }
+
             // Arrange
             // For every sub-query from the filters list above, compose a boolean query that is always
             // true, in the format (expression) OR NOT (expression)
@@ -487,7 +506,10 @@ description includes \
             'hide done date',
             'hide due date',
             'hide edit button',
+            'hide group count',
             'hide id',
+            'hide nested backlink',
+            'hide nested backlinks',
             'hide on completion',
             'hide priority',
             'hide recurrence rule',
@@ -495,6 +517,7 @@ description includes \
             'hide start date',
             'hide tags',
             'hide task count',
+            'hide toolbar',
             'hide tree',
             'hide urgency',
             'ignore global query',
@@ -512,7 +535,10 @@ description includes \
             'show done date',
             'show due date',
             'show edit button',
+            'show group count',
             'show id',
+            'show nested backlink',
+            'show nested backlinks',
             'show on completion',
             'show priority',
             'show recurrence rule',
@@ -520,8 +546,12 @@ description includes \
             'show start date',
             'show tags',
             'show task count',
+            'show toolbar',
             'show tree',
             'show urgency',
+            'view columns by function task.status.symbol',
+            'view columns by priority',
+            'view list',
         ];
         test.concurrent.each<string>(filters)('recognises %j', (filter) => {
             // Arrange
@@ -606,7 +636,7 @@ description includes \
 
     describe('should include instruction in parsing error messages', () => {
         function getQueryError(source: string) {
-            return new Query(source, new TasksFile('Example Path.md')).error;
+            return new Query(source, createTestTasksFile('Example Path.md')).error;
         }
 
         it('for invalid regular expression filter', () => {
@@ -640,6 +670,9 @@ to find them literally, you must add a \ before them:
 CAUTION! Regular expression (or 'regex') searching is a powerful
 but advanced feature that requires thorough knowledge in order to
 use successfully, and not miss intended search results.
+
+Patterns with nested quantifiers (for example (a+)+) are rejected
+because they can cause extreme slowdowns (catastrophic backtracking).
 
 Problem line: "${source}"`,
             );
@@ -737,7 +770,7 @@ Problem statement:
         it('should expand placeholder values in filters, but not source', () => {
             // Arrange
             const rawQuery = 'path includes {{query.file.path}}';
-            const tasksFile = new TasksFile('a/b/path with space.md');
+            const tasksFile = createTestTasksFile('a/b/path with space.md');
 
             // Act
             const query = new Query(rawQuery, tasksFile);
@@ -756,7 +789,6 @@ Problem statement:
             const query = new Query(source);
 
             // Assert
-            expect(query).not.toBeValid();
             expect(query.error).toEqual(
                 'The query looks like it contains a placeholder, with "{{" and "}}"\n' +
                     'but no file path has been supplied, so cannot expand placeholder values.\n' +
@@ -769,13 +801,12 @@ Problem statement:
         it('should report error if non-existent placeholder used', () => {
             // Arrange
             const source = 'path includes {{query.file.noSuchProperty}}';
-            const tasksFile = new TasksFile('a/b/path with space.md');
+            const tasksFile = createTestTasksFile('a/b/path with space.md');
 
             // Act
             const query = new Query(source, tasksFile);
 
             // Assert
-            expect(query).not.toBeValid();
             expect(query.error).toEqual(
                 'There was an error expanding one or more placeholders.\n' +
                     '\n' +
@@ -788,18 +819,30 @@ Problem statement:
             expect(query.filters.length).toEqual(0);
         });
 
-        it('should report first error if non-existent placeholder used', () => {
+        it('should not report error if comment contains a non-existent placeholder', () => {
             // Arrange
-            const source = `{{error 1}}
-{{error 2}}
-{{error 3}}`;
-            const tasksFile = new TasksFile('a/b/path with space.md');
+            const source = '  #  path includes {{query.file.noSuchProperty}}';
+            const tasksFile = createTestTasksFile('a/b/path with space.md');
 
             // Act
             const query = new Query(source, tasksFile);
 
             // Assert
-            expect(query).not.toBeValid();
+            expect(query.error).toBeUndefined();
+            expect(query.filters.length).toEqual(0);
+        });
+
+        it('should report first error if non-existent placeholder used', () => {
+            // Arrange
+            const source = `{{error 1}}
+{{error 2}}
+{{error 3}}`;
+            const tasksFile = createTestTasksFile('a/b/path with space.md');
+
+            // Act
+            const query = new Query(source, tasksFile);
+
+            // Assert
             expect(query.error).toEqual(
                 'There was an error expanding one or more placeholders.\n' +
                     '\n' +
@@ -814,7 +857,7 @@ Problem statement:
     });
 
     describe('properties in the query file', () => {
-        const file = getTasksFileFromMockData(query_using_properties);
+        const file = getTasksFileFromMockData('query_using_properties');
 
         function makeQueryFromPropertyWithValue(propertyName: string, propertyValue: string) {
             const source = "{{query.file.property('" + propertyName + "')}}";
@@ -876,18 +919,16 @@ group by folder
                 `);
             });
 
-            it('does not work with continuation lines in multi-line property with query.file.property via placeholder', () => {
+            it('should work with continuation lines in multi-line property with query.file.property via placeholder', () => {
                 const propertyValue = `path \\
   includes query_using_properties
 `;
                 const query = makeQueryFromPropertyWithValue('task_instructions_with_continuation_line', propertyValue);
 
-                expect(query.error).not.toBeUndefined();
-                expect(query.error).toMatchInlineSnapshot(`
-                    "do not understand query
-                    Problem statement:
-                        {{query.file.property('task_instructions_with_continuation_line')}}: statement 1 after expansion of placeholder =>
-                        path \\
+                expect(query.error).toBeUndefined();
+                expect(query.explainQuery()).toMatchInlineSnapshot(`
+                    "{{query.file.property('task_instructions_with_continuation_line')}} =>
+                    path includes query_using_properties
                     "
                 `);
             });
@@ -929,7 +970,7 @@ group by folder
                 const source = `
 filter by function \\
     if (!query.file.hasProperty('root_dirs_to_search')) { \\
-        throw Error('Please set the "root_dirs_to_search" list property, with each value ending in a backslash...'); \\
+        throw new Error('Please set the "root_dirs_to_search" list property, with each value ending in a backslash...'); \\
     } \\
     const roots = query.file.property('root_dirs_to_search'); \\
     return roots.includes(task.file.root);
@@ -945,12 +986,12 @@ filter by function \\
                 expect(query.explainQuery()).toMatchInlineSnapshot(`
                     "filter by function \\
                         if (!query.file.hasProperty('root_dirs_to_search')) { \\
-                            throw Error('Please set the "root_dirs_to_search" list property, with each value ending in a backslash...'); \\
+                            throw new Error('Please set the "root_dirs_to_search" list property, with each value ending in a backslash...'); \\
                         } \\
                         const roots = query.file.property('root_dirs_to_search'); \\
                         return roots.includes(task.file.root);
                      =>
-                    filter by function if (!query.file.hasProperty('root_dirs_to_search')) { throw Error('Please set the "root_dirs_to_search" list property, with each value ending in a backslash...'); } const roots = query.file.property('root_dirs_to_search'); return roots.includes(task.file.root);
+                    filter by function if (!query.file.hasProperty('root_dirs_to_search')) { throw new Error('Please set the "root_dirs_to_search" list property, with each value ending in a backslash...'); } const roots = query.file.property('root_dirs_to_search'); return roots.includes(task.file.root);
                     "
                 `);
 
@@ -968,6 +1009,37 @@ filter by function \\
     });
 });
 
+/**
+ * Applies a query to a collection of tasks represented in Markdown format and verifies the results
+ * against a given expected output rendered in Markdown.
+ *
+ * It runs the search a second time, checking the query works when it's in all-capitals.
+ *
+ * @param tasksAsMarkdown - The tasks represented in Markdown format.
+ * @param source - The query string to apply to the tasks.
+ * @param expectedResultsAsMarkdown - The expected results, in Markdown format, to compare against.
+ */
+function searchTasksAndTestResultsAsMarkdown(
+    tasksAsMarkdown: string,
+    source: string,
+    expectedResultsAsMarkdown: string,
+) {
+    // Arrange
+    const sourceUpper = source.toUpperCase();
+    const query = new Query(source);
+    const queryUpper = new Query(sourceUpper);
+
+    const tasks = createTasksFromMarkdown(tasksAsMarkdown, 'some_markdown_file', 'Some Heading');
+
+    // Act
+    const queryResult = query.applyQueryToTasks(tasks);
+    const queryUpperResult = queryUpper.applyQueryToTasks(tasks);
+
+    // Assert
+    expect(queryResult.asMarkdown()).toEqual(expectedResultsAsMarkdown);
+    expect(queryUpperResult.asMarkdown()).toEqual(expectedResultsAsMarkdown);
+}
+
 describe('Query', () => {
     describe('filtering', () => {
         it('filters paths case insensitive', () => {
@@ -976,7 +1048,7 @@ describe('Query', () => {
                 new Task({
                     status: Status.TODO,
                     description: 'description',
-                    taskLocation: TaskLocation.fromUnknownPosition(new TasksFile('Ab/C D')),
+                    taskLocation: TaskLocation.fromUnknownPosition(createTestTasksFile('Ab/C D')),
                     indentation: '',
                     listMarker: '-',
                     priority: Priority.None,
@@ -998,7 +1070,7 @@ describe('Query', () => {
                 new Task({
                     status: Status.TODO,
                     description: 'description',
-                    taskLocation: TaskLocation.fromUnknownPosition(new TasksFile('FF/C D')),
+                    taskLocation: TaskLocation.fromUnknownPosition(createTestTasksFile('FF/C D')),
                     indentation: '',
                     listMarker: '-',
                     priority: Priority.None,
@@ -1465,7 +1537,7 @@ describe('Query', () => {
     describe('query path and metadata', function () {
         it('should provide access to the path of the query', () => {
             const path = 'query location.md';
-            const query = new Query('not done', new TasksFile(path));
+            const query = new Query('not done', createTestTasksFile(path));
 
             expect(query.filePath).toEqual(path);
         });
@@ -1500,7 +1572,7 @@ describe('Query', () => {
 
         it('should pass the query path through to filter functions', () => {
             // Arrange
-            const queryTasksFile = new TasksFile('this/was/passed/in/correctly.md');
+            const queryTasksFile = createTestTasksFile('this/was/passed/in/correctly.md');
             const query = new Query('', queryTasksFile);
 
             const matchesIfSearchInfoHasCorrectPath = (_task: Task, searchInfo: SearchInfo) => {
@@ -1534,6 +1606,51 @@ describe('Query', () => {
         it('should hide "tree" by default', () => {
             const query = new Query('');
             expect(query.queryLayoutOptions.hideTree).toEqual(true);
+        });
+    });
+
+    describe('view mode', () => {
+        it('should default to "list" view', () => {
+            const query = new Query('');
+            expect(query.viewLayoutOptions.viewMode).toEqual('list');
+        });
+
+        it('should reject columns view without a grouping expression', () => {
+            const query = new Query('view columns');
+
+            expect(query.viewLayoutOptions.viewMode).toEqual('list');
+            expect(query.viewLayoutOptions.grouper).toBeNull();
+            expect(query.error).toEqual(`columns view requires a grouping expression
+
+For example:
+    view columns by priority
+    view columns by root
+    view columns by status.type reverse
+Problem line: "view columns"`);
+        });
+
+        it('should allow columns view to be grouped by priority', () => {
+            const query = new Query('view columns by priority');
+
+            expect(query.error).toBeUndefined();
+            expect(query.viewLayoutOptions.viewMode).toEqual('columns');
+            expect(query.viewLayoutOptions.grouper).not.toBeNull();
+            expect(query.viewLayoutOptions.grouper?.property).toEqual('priority');
+            expect(query.grouping).toHaveLength(0);
+        });
+
+        it('should give a meaningful error message for unknown view mode', () => {
+            const query = new Query('view nonsense');
+            expect(query.viewLayoutOptions.viewMode).toEqual('list');
+            expect(query.error).toEqual(`do not understand view mode "nonsense"
+
+The available view modes are:
+    list
+    columns
+
+For example:
+    view list
+Problem line: "view nonsense"`);
         });
     });
 
@@ -1613,7 +1730,7 @@ describe('Query', () => {
             const source = 'group by function query.file.path';
             const sourceUpper = 'GROUP BY FUNCTION query.file.path';
 
-            const tasksFile = new TasksFile('hello.md');
+            const tasksFile = createTestTasksFile('hello.md');
             const query = new Query(source, tasksFile);
             const queryUpper = new Query(sourceUpper, tasksFile);
 
@@ -1770,6 +1887,57 @@ describe('Query', () => {
         });
     });
 
+    describe('grouping instructions in conjunction with columns view', () => {
+        const tasksAsMarkdown = `
+- [ ] Task 1 - Todo - high priority ⏫
+- [x] Task 2 - Done   priority 🔽
+            `;
+
+        it('should apply the "view columns" grouper automatically', () => {
+            const source = `
+                view columns by priority
+                `;
+
+            // In column view, the view's grouper ('by priority', here) is injected as
+            // the first (ond only) grouper in the search.
+            const expectedResultsAsMarkdown = `
+#### %%1%%High priority
+
+- [ ] Task 1 - Todo - high priority ⏫
+
+#### %%4%%Low priority
+
+- [x] Task 2 - Done   priority 🔽
+`;
+            searchTasksAndTestResultsAsMarkdown(tasksAsMarkdown, source, expectedResultsAsMarkdown);
+        });
+
+        it('should prepend the "view columns" grouper to any user-supplied groups', () => {
+            // Arrange
+            const source = `
+                view columns by status.name
+                group by priority
+                `;
+
+            // In column view, the view's grouper ('by priority', here) is injected before
+            // all the user-supplied groups.
+            const expectedResultsAsMarkdown = `
+#### Done
+
+##### %%4%%Low priority
+
+- [x] Task 2 - Done   priority 🔽
+
+#### Todo
+
+##### %%1%%High priority
+
+- [ ] Task 1 - Todo - high priority ⏫
+`;
+            searchTasksAndTestResultsAsMarkdown(tasksAsMarkdown, source, expectedResultsAsMarkdown);
+        });
+    });
+
     describe('error handling', () => {
         it('should catch an exception that occurs during searching', () => {
             // Arrange
@@ -1813,7 +1981,7 @@ Problem statement:
         it('should save the source correctly in a Statement object', () => {
             const source = String.raw`(path includes A) OR \
                 (path includes {{query.file.path}})`;
-            const query = new Query(source, new TasksFile('Test.md'));
+            const query = new Query(source, createTestTasksFile('Test.md'));
 
             expect(query.error).toBeUndefined();
             const filter = query.filters[0];

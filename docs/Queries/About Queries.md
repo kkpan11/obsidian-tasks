@@ -58,6 +58,8 @@ In the following sections we will explain all the various options that are avail
 
 - [[Global Query]]
   - Set a global query in the settings that Tasks will add to the start of all the Queries in your vault.
+- [[Presets]]
+  - Define named instructions that you can re-use in multiple queries throughout your whole vault.
 - [[Query File Defaults]]
   - Set properties in note frontmatter, to instruct tasks to add instructions to all the Queries in that file.
 
@@ -87,6 +89,8 @@ In the following sections we will explain all the various options that are avail
 
 ### Controlling the display
 
+- [[Views]]
+  - View the Query's results in lists or columns (sometimes known as Kanban boards).
 - [[Limiting]]
   - Control the maximum number of tasks displayed in a Query's results, and in each group of tasks.
 - [[Sorting]]

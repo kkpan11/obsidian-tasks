@@ -192,11 +192,28 @@ This is intentional. As well as matching what the user requested, it matches the
 ## Priority of Dates
 
 A task can have [[Dates|various dates]].
+
 When a task has multiple dates, one of them is selected as reference date based on the following priorities:
 
-1. Due date
-2. Scheduled date
-3. Start date
+> [!Info] Priority of date fields, with default settings
+>
+> 1. **Due** date
+> 2. **Scheduled** date
+> 3. **Start** date
+
+> [!Info] Priority of date fields if Scheduled date might be removed
+> When the [[#Remove scheduled date on recurrence]] setting is enabled, the Start date is prioritized over the Scheduled date because the Scheduled date will be removed from the next occurrence:
+>
+> 1. **Due** date
+> 2. **Start** date
+> 3. **Scheduled** date
+>
+> It makes more sense to calculate the next occurrence based on a date that will actually exist in the new task.
+>
+> The Start date also provides a more stable reference for calculating future recurrences, especially since you'll typically add a new Scheduled date later when you're ready to work on the task.
+>
+> > [!released]
+> > This different order was introduced in Tasks 7.22.0.
 
 If more dates than the reference date exist on the original recurring task, the next occurrence will have the same dates.
 All dates of the next occurring task will have the relative distance to the reference date that they had on the original task.
@@ -362,6 +379,22 @@ This is detectable prior to completing the task by viewing the task in Reading M
 
 - the recurrence rule will be hidden,
 - and the date will be displayed as 'Invalid date'.
+
+## Support
+
+Before creating a new bug report or feature request about Recurring Tasks, please check existing items to avoid duplicates.
+
+You do not need to search manually: the links below are already filtered to the label `"scope: recurrence"`.
+
+- Check both Open and Closed items.
+- If you find an existing item, support it there instead of adding a `+1` comment. See [[About Support and Help#How to support an existing request|How to support an existing request]].
+
+| Type | Open | Closed | Notes |
+| --- | --- | --- | --- |
+| Issues | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aopen%20label%3A%22scope%3A+recurrence%22%20is%3Aissue%20) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aclosed%20label%3A%22scope%3A+recurrence%22%20is%3Aissue%20) | bug reports and feature requests |
+| Discussions | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aopen+label%3A%22scope%3A+recurrence%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aclosed+label%3A%22scope%3A+recurrence%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | older feature discussions from before late 2022 |
+
+If you do not find an existing item in Issues or Discussions, see [[About Support and Help]] for how to report a bug or request a feature.
 
 ## Technical Details
 

@@ -10,15 +10,22 @@ import { verifyMarkdownForDocs } from '../TestingTools/VerifyMarkdown';
 import { parseAndEvaluateExpression } from '../../src/Scripting/TaskExpression';
 import { MarkdownTable } from '../../src/lib/MarkdownTable';
 import { makeQueryContextWithTasks } from '../../src/Scripting/QueryContext';
-import { TasksFile } from '../../src/Scripting/TasksFile';
 import type { Task } from '../../src/Task/Task';
 import { readTasksFromSimulatedFile } from '../Obsidian/SimulatedFile';
-import docs_sample_for_task_properties_reference from '../Obsidian/__test_data__/docs_sample_for_task_properties_reference.json';
+import { LinkResolver } from '../../src/Task/LinkResolver';
+import { getFirstLinkpathDest } from '../__mocks__/obsidian';
+import { createTestTasksFile } from '../TestingTools/TasksFileHelpers';
 import { addBackticks, determineExpressionType, formatToRepresentType } from './ScriptingTestHelpers';
 
 window.moment = moment;
 
 // TODO Show a task in a callout, or an ordered list
+
+beforeEach(() => {});
+
+afterEach(() => {
+    LinkResolver.getInstance().resetGetFirstLinkpathDestFn();
+});
 
 describe('task', () => {
     function verifyFieldDataForReferenceDocs(fields: string[]) {
@@ -35,7 +42,7 @@ describe('task', () => {
         });
         const markdownTable = new MarkdownTable(headings);
 
-        const queryContext = makeQueryContextWithTasks(new TasksFile(tasks[0].path), tasks);
+        const queryContext = makeQueryContextWithTasks(createTestTasksFile(tasks[0].path), tasks);
         for (const field of fields) {
             const cells = [addBackticks(field)];
             for (const task of tasks) {
@@ -131,6 +138,7 @@ describe('task', () => {
             // 'task.blockLink', // Release support for grouping by task.blockLink, after removing the leading space and maybe the carat
             'task.originalMarkdown',
             'task.lineNumber',
+            'task.listMarker',
         ]);
     });
 
@@ -147,8 +155,21 @@ describe('task', () => {
         ]);
     });
 
+    it('links', () => {
+        // This is getting annoying, having to do this repeatedly.
+        LinkResolver.getInstance().setGetFirstLinkpathDestFn(getFirstLinkpathDest);
+
+        const tasks = readTasksFromSimulatedFile('links_everywhere');
+        verifyFieldDataFromTasksForReferenceDocs(tasks, [
+            'task.outlinks',
+            'task.file.outlinksInProperties',
+            'task.file.outlinksInBody',
+            'task.file.outlinks',
+        ]);
+    });
+
     it('frontmatter properties', () => {
-        const tasks = readTasksFromSimulatedFile(docs_sample_for_task_properties_reference as any);
+        const tasks = readTasksFromSimulatedFile('docs_sample_for_task_properties_reference');
         // Show just the first task:
         verifyFieldDataFromTasksForReferenceDocs(tasks.slice(0, 1), [
             "task.file.hasProperty('creation date')",
@@ -163,6 +184,14 @@ describe('task', () => {
             "task.file.property('sample_link_property')",
             "task.file.property('sample_link_list_property')",
             "task.file.property('tags')",
+
+            "task.file.property('nested_data').surname",
+            "task.file.property('nested_data').firstname",
+            "task.file.property('nested_data')['middle name']",
+
+            "task.file.property('object_serialization').nested1",
+            "task.file.property('object_serialization').nested2",
+
             // 'task.file.tags', // TODO Replace
             // 'task.file.tags()', // TODO Implement
             // "task.file.tags('body')", // TODO Implement

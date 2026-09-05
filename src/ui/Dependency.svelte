@@ -9,6 +9,7 @@
     export let editableTask: EditableTask;
     export let allTasks: Task[];
     export let _onDescriptionKeyDown: (e: KeyboardEvent) => void;
+    export let id: string;
     export let type: 'blocking' | 'blockedBy';
     export let labelText: string;
     export let accesskey: string | null;
@@ -154,7 +155,7 @@
         on:focus={onFocused}
         on:blur={() => (inputFocused = false)}
         {accesskey}
-        id={type}
+        {id}
         class="tasks-modal-dependency-input"
         type="text"
         {placeholder}
@@ -199,7 +200,15 @@
                     >[{task.status.symbol}] {descriptionAdjustedForDependencySearch(task)}</span
                 >
 
-                <button on:click={() => removeTask(task)} type="button" class="task-dependency-delete">
+                <!-- 'mousedown|preventDefault' keeps focus where it is while this button is
+                     tapped, so that the focus-dependent padding in TaskModal.scss does not
+                     move the modal contents mid-tap. See the longer note in EditTask.svelte. -->
+                <button
+                    on:click={() => removeTask(task)}
+                    on:mousedown|preventDefault
+                    type="button"
+                    class="task-dependency-delete"
+                >
                     <svg
                         style="display: block; margin: auto;"
                         xmlns="http://www.w3.org/2000/svg"

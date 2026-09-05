@@ -1,4 +1,12 @@
 {
+  "common": {
+    "cancel": "",
+    "edit": "",
+    "moreInfo": "",
+    "okay": "",
+    "reload": "",
+    "save": ""
+  },
   "main": {
     "loadingPlugin": "加载插件: {{name}} v{{version}}",
     "unloadingPlugin": "卸载插件: {{name}} v{{version}}"
@@ -25,7 +33,36 @@
         "description": "控制搜索和切换状态的行为。",
         "name": "任务状态类型"
       },
-      "fixErrorsBeforeSaving": "在保存前修复错误。"
+      "fixErrorsBeforeSaving": "在保存前修复错误。",
+      "title": {
+        "editCoreStatus": "",
+        "editCustomStatus": ""
+      }
+    },
+    "editPresetModal": {
+      "name": {
+        "duplicate": "",
+        "name": "",
+        "placeholder": "",
+        "required": ""
+      },
+      "query": {
+        "description": "",
+        "name": "",
+        "placeholder": ""
+      },
+      "title": ""
+    }
+  },
+  "notices": {
+    "do-not-show-message-again": "不要再显示此消息",
+    "live-preview-callout-warning": {
+      "line1": "目前，在实时预览中点击标注块内的复选框时，Obsidian 不会向插件提供正确的任务行。",
+      "line2": "相反，Obsidian 会报告正在编辑标注块标题。",
+      "line3": "因此，Tasks 插件无法安全地添加或移除完成日期，也无法创建重复任务的下一份副本。",
+      "line4": "要正确完成该任务：",
+      "line5": "1. 撤销你对复选框所做的更改。",
+      "line6": "2. 然后点击任务行并运行 \"{{commandName}}\" 命令，或者切换到阅读视图并在那里点击复选框。"
     }
   },
   "reports": {
@@ -65,18 +102,18 @@
         }
       },
       "sampleTasks": {
-        "line1": "",
-        "line2": "",
-        "line3": "",
+        "line1": "这里是用于实际任务使用的各种状态的示例任务行，供您进行实验。",
+        "line2": "创建此文件时，任务描述中的状态符号和名称是正确的。",
+        "line3": "如果您自创建以来修改了样例任务，可以在下方的任务搜索的分组标题中查看当前的状态类型和名称。",
         "tip": {
-          "line1": "",
-          "line2": ""
+          "line1": "提示：如果所有复选框看起来都一样...",
+          "line2": "如果在阅读模式或实时预览中所有复选框看起来都一样，请参阅[自定义状态样式]({{url}})，了解如何选择主题或CSS片段来为您的状态设置样式。"
         },
-        "title": ""
+        "title": "样例任务"
       },
       "searchSampleTasks": {
-        "line1": "",
-        "title": ""
+        "line1": "此任务搜索显示了此文件中的所有任务，按其状态类型和状态名称进行分组。",
+        "title": "搜索样例任务"
       },
       "statusSettings": {
         "comment": {
@@ -105,7 +142,7 @@
         "name": "自动建议任务内容"
       }
     },
-    "changeRequiresRestart": "更改任何设置都需要重新启动Obsidian。",
+    "changeRequiresRestart": "需要重启。",
     "dates": {
       "cancelledDate": {
         "description": "启用此功能将在任务设置为取消时，在其末尾添加时间戳 ❌ YYYY-MM-DD。",
@@ -186,8 +223,18 @@
       "heading": "全局查询",
       "query": {
         "description": "自动包含在库中每个 Tasks 块开头的查询语句.用于添加默认过滤器或布局选项。",
-        "placeholder": "例如...\npath does not include _templates/\nlimit 300\nshow urgency"
+        "placeholder": "例如...\npath does not include _templates/\nlimit 300\nshow urgency",
+        "shortDescription": ""
       }
+    },
+    "presets": {
+      "buttons": {
+        "addNewPreset": ""
+      },
+      "emptyState": "",
+      "line1": "您可以在这里定义命名指令，可以在多个查询中重复使用。一个名为 '{{name}}' 的预设可以在任务查询中使用 '{{instruction1}}' 或 '{{instruction2}}'。",
+      "line2": "任何打开的任务查询在预设被编辑时都会自动重新加载。",
+      "name": "预设"
     },
     "recurringTasks": {
       "heading": "重复性任务",
@@ -203,8 +250,42 @@
         "name": "在重复性任务中移除计划日期"
       }
     },
+    "searchResults": {
+      "heading": "",
+      "taskCountLocation": {
+        "description": "",
+        "name": "",
+        "options": {
+          "bottom": "",
+          "top": ""
+        }
+      }
+    },
+    "searches": {
+      "enableCustomSearches": {
+        "confirm": {
+          "acknowledge": "",
+          "enable": ""
+        },
+        "description": {
+          "line1": "",
+          "line2": "",
+          "line3": "",
+          "line4": ""
+        },
+        "name": ""
+      },
+      "heading": ""
+    },
     "seeTheDocumentation": "参阅文档",
     "statuses": {
+      "buttons": {
+        "addStatus": "",
+        "importFromTheme": {
+          "description": "",
+          "name": ""
+        }
+      },
       "collections": {
         "anuppuccinTheme": "AnuPpuccin 主题",
         "auraTheme": "Aura 主题",
@@ -212,6 +293,9 @@
         "buttons": {
           "addCollection": {
             "name": "{{themeName}}: 添加 {{numberOfStatuses}} 种支持状态"
+          },
+          "importCollection": {
+            "name": ""
           }
         },
         "ebullientworksTheme": "Ebullientworks 主题",
@@ -236,12 +320,14 @@
       "customStatuses": {
         "buttons": {
           "addAllUnknown": {
+            "description": "",
             "name": "添加所有未知状态类型"
           },
           "addNewStatus": {
             "name": "添加新任务状态"
           },
           "resetCustomStatuses": {
+            "description": "",
             "name": "重置自定义状态类型为默认值"
           }
         },
@@ -251,9 +337,27 @@
           "line3": "<b>注意</b>任何与更早的状态具有相同符号的状态都将被忽略.您可以通过运行“Create or edit task”命令并查看“Status”下拉列表来确认实际加载的状态。",
           "line4": "参阅文档！"
         },
+        "emptyState": "",
         "heading": "自定义状态"
       },
-      "heading": "任务状态"
+      "filter": {
+        "placeholder": ""
+      },
+      "heading": "任务状态",
+      "reloadRequired": "",
+      "types": {
+        "cancelled": "",
+        "done": "",
+        "empty": "",
+        "inProgress": "",
+        "nonTask": "",
+        "onHold": "",
+        "todo": ""
+      },
+      "unnamed": ""
+    },
+    "taskEntry": {
+      "heading": ""
     }
   }
 }

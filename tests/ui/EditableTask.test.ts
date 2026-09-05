@@ -159,26 +159,27 @@ describe('EditableTask tests', () => {
         expect(appliedEdits.length).toEqual(1);
         expect(appliedEdits[0]).toMatchInlineSnapshot(`
             Task {
+              "_cancelledDate": null,
+              "_createdDate": null,
+              "_doneDate": null,
+              "_dueDate": null,
+              "_scheduledDate": null,
+              "_startDate": null,
               "_urgency": null,
               "blockLink": " ^dcf64c",
-              "cancelledDate": null,
               "children": [],
-              "createdDate": null,
               "dependsOn": [],
               "description": "",
-              "doneDate": null,
-              "dueDate": null,
               "id": "abcdef",
               "indentation": "  ",
               "listMarker": "-",
+              "markdownHardBreak": "",
               "onCompletion": "",
               "originalMarkdown": "  - [ ] Do exercises #todo #health 🆔 abcdef ⛔ 123456,abc123 🔼 🔁 every day when done 🏁 delete ➕ 2023-07-01 🛫 2023-07-02 ⏳ 2023-07-03 📅 2023-07-04 ❌ 2023-07-06 ✅ 2023-07-05 ^dcf64c",
               "parent": null,
               "priority": "3",
               "recurrence": null,
-              "scheduledDate": null,
               "scheduledDateIsInferred": false,
-              "startDate": null,
               "status": Status {
                 "configuration": StatusConfiguration {
                   "availableAsCommand": true,
@@ -203,8 +204,11 @@ describe('EditableTask tests', () => {
                   "_frontmatter": {
                     "tags": [],
                   },
+                  "_outlinksInBody": [],
+                  "_outlinksInProperties": [],
                   "_path": "some/folder/fileName.md",
                   "_tags": [],
+                  "tFile": undefined,
                 },
               },
             }

@@ -24,6 +24,10 @@ const future = new TasksDate(moment('2023-06-12'));
 const invalid = new TasksDate(moment('2023-02-31'));
 const undated = new TasksDate(null);
 
+function numericStringCompare(a: string, b: string): number {
+    return a.localeCompare(b, undefined, { numeric: true });
+}
+
 describe('TasksDate', () => {
     it('should format valid dates', () => {
         const date = '2023-10-13';
@@ -67,33 +71,43 @@ describe('TasksDate', () => {
     });
 
     // For behaviour, see https://momentjs.com/docs/#/displaying/fromnow/
-    it.each([
-        ['1899-04-30T18:44:54.240Z', '%%118990611%% 124 years ago'],
-        ['2021-01-20T07:04:35.022Z', '%%120210611%% 2 years ago'],
-        ['2022-07-25T08:40:50.048Z', '%%120220611%% a year ago'],
-        ['2022-07-29T19:07:44.595Z', '%%120220811%% 10 months ago'],
-        ['2023-03-29T08:31:15.671Z', '%%120230411%% 2 months ago'],
-        ['2023-04-29T08:59:53.331Z', '%%120230511%% a month ago'],
-        ['2023-05-17T14:42:26.842Z', '%%120230517%% 25 days ago'],
-        ['2023-06-09T17:36:01.176Z', '%%120230609%% 2 days ago'],
-        ['2023-06-11T09:42:21.083Z', '%%120230611%% 10 hours ago'],
-        ['2023-06-11T19:15:00.000Z', '%%120230611%% an hour ago'],
-        ['2023-06-11T19:16:00.000Z', '%%120230611%% 44 minutes ago'],
-        ['2023-06-11T19:59:00.000Z', '%%120230611%% a minute ago'],
-        ['2023-06-11T20:00:00.000Z', '%%120230611%% a few seconds ago'], // Exact time that clock is set to
-        ['2023-06-11T20:01:00.000Z', '%%120230611%% in a minute'],
-        ['2023-06-11T20:44:00.000Z', '%%120230611%% in 44 minutes'],
-        ['2023-06-11T20:45:00.000Z', '%%120230611%% in an hour'],
-        ['2023-06-12T10:56:01.641Z', '%%320230612%% in 15 hours'],
-        ['2023-06-12T22:02:39.934Z', '%%320230612%% in a day'],
-        ['2023-06-15T13:07:53.700Z', '%%320230615%% in 4 days'],
-        ['2023-07-06T07:41:58.379Z', '%%320230705%% in 24 days'],
-        ['2023-07-08T02:55:31.854Z', '%%320230711%% in a month'],
-        ['2024-04-03T20:06:33.578Z', '%%320240411%% in 10 months'],
-        ['2024-05-02T03:53:43.120Z', '%%320240611%% in a year'],
-        ['2024-12-14T08:15:40.973Z', '%%320250611%% in 2 years'],
-        ['2032-12-25T14:41:16.452Z', '%%320330611%% in 10 years'],
-    ])(
+    const sampleDatesSortedByDate = [
+        ['1899-04-30T18:44:54.240Z', '%%1189906112000%% 124 years ago'],
+        ['2021-01-20T07:04:35.022Z', '%%1202106112000%% 2 years ago'],
+        ['2022-07-25T08:40:50.048Z', '%%1202206112000%% a year ago'],
+        ['2022-07-29T19:07:44.595Z', '%%1202208112000%% 10 months ago'],
+        ['2023-03-29T08:31:15.671Z', '%%1202304112000%% 2 months ago'],
+        ['2023-04-29T08:59:53.331Z', '%%1202305112000%% a month ago'],
+        ['2023-05-17T14:42:26.842Z', '%%1202305172000%% 25 days ago'],
+        ['2023-06-09T17:36:01.176Z', '%%1202306092000%% 2 days ago'],
+        ['2023-06-11T09:42:21.083Z', '%%1202306111000%% 10 hours ago'],
+        ['2023-06-11T19:15:00.000Z', '%%1202306111900%% an hour ago'],
+        ['2023-06-11T19:16:00.000Z', '%%1202306111916%% 44 minutes ago'],
+        ['2023-06-11T19:59:00.000Z', '%%1202306111959%% a minute ago'],
+        ['2023-06-11T20:00:00.000Z', '%%1202306112000%% a few seconds ago'], // Exact time that clock is set to
+        ['2023-06-11T20:01:00.000Z', '%%3202306112001%% in a minute'],
+        ['2023-06-11T20:44:00.000Z', '%%3202306112044%% in 44 minutes'],
+        ['2023-06-11T20:45:00.000Z', '%%3202306112100%% in an hour'],
+        ['2023-06-12T10:56:01.641Z', '%%3202306121100%% in 15 hours'],
+        ['2023-06-12T22:02:39.934Z', '%%3202306122000%% in a day'],
+        ['2023-06-15T13:07:53.700Z', '%%3202306152000%% in 4 days'],
+        ['2023-07-06T07:41:58.379Z', '%%3202307052000%% in 24 days'],
+        ['2023-07-08T02:55:31.854Z', '%%3202307112000%% in a month'],
+        ['2024-04-03T20:06:33.578Z', '%%3202404112000%% in 10 months'],
+        ['2024-05-02T03:53:43.120Z', '%%3202406112000%% in a year'],
+        ['2024-12-14T08:15:40.973Z', '%%3202506112000%% in 2 years'],
+        ['2032-12-25T14:41:16.452Z', '%%3203306112000%% in 10 years'],
+    ] as const;
+
+    it('should confirm that sample dates really are sorted old-to-new', () => {
+        // A later test depends on the date values really being ascending, so we enforce that here.
+        const sampleDates: ReadonlyArray<string> = sampleDatesSortedByDate.map((values) => values[0]);
+        const sampleDatesSorted = [...sampleDates].sort((a, b) => numericStringCompare(a, b));
+
+        expect(sampleDatesSorted).toEqual(sampleDates);
+    });
+
+    it.each(sampleDatesSortedByDate)(
         'should categorise dates for grouping, relative to today: on "%s" - expected "%s"',
         (date: string, expectedResult: string) => {
             const tasksDate = new TasksDate(moment(date));
@@ -101,11 +115,63 @@ describe('TasksDate', () => {
         },
     );
 
+    it.each(sampleDatesSortedByDate)(
+        'should categorise dates for grouping, in correct order, in Spanish: on "%s"',
+        (date: string, expectedResult: string) => {
+            const extractSortOrder = (result: string): string => {
+                return result.split(' ')[0];
+            };
+
+            const englishSortOrder = extractSortOrder(expectedResult);
+
+            // Check that if we ask for the group name on a Spanish language machine,
+            // we get the same sort order:
+            const tasksDate = new TasksDate(moment(date).locale('es'));
+            const spanishSortOrder = extractSortOrder(tasksDate.fromNow.groupText);
+
+            expect(spanishSortOrder).toEqual(englishSortOrder);
+        },
+    );
+
+    it('should sort group categories in ascending order by date', () => {
+        // See:
+        //      https://github.com/obsidian-tasks-group/obsidian-tasks/issues/2789
+        //      Inconsistent sort order of groups by date categories (sometimes)
+        const sampleDateGroupNames: ReadonlyArray<string> = sampleDatesSortedByDate.map((values) => values[1]);
+        const sampleDateGroupNamesSorted = [...sampleDateGroupNames].sort((a, b) => numericStringCompare(a, b));
+
+        expect(sampleDateGroupNamesSorted).toEqual(sampleDateGroupNames);
+    });
+
     it('should categorise edge-case dates for grouping, relative to today', () => {
         expect(new TasksDate(null).fromNow.groupText).toEqual('');
         // Invalid dates always get put first
         expect(new TasksDate(moment('1999-02-31')).fromNow.groupText).toEqual('%%0%% Invalid date');
         expect(new TasksDate(moment('2023-02-31')).fromNow.groupText).toEqual('%%0%% Invalid date');
+    });
+
+    describe('language-aware fromNow() calculations', () => {
+        const thisTime = '2023-06-11 20:00';
+        const taskTime = '2023-06-13 20:00';
+
+        // The initial '3' indicates that the date is in future of the current time.
+        const expectedTaskTimeSortOrder = 3 * 1e12 + 2023 * 1e8 + 6 * 1e6 + 13 * 1e4 + 20 * 1e2;
+        expect(expectedTaskTimeSortOrder).toEqual(3202306132000);
+
+        describe('should calculate correct sort order for fromNow value in given language, for a date in two days', () => {
+            const locales = [
+                ['en', 'in 2 days'],
+                ['es', 'en 2 días'],
+            ];
+            it.each(locales)('%s locale', (loc: string, expectedFromNow: string) => {
+                jest.setSystemTime(new Date(thisTime));
+
+                const now = moment(taskTime);
+                const tasksDate = new TasksDate(now.clone().locale(loc));
+                expect(tasksDate.fromNow.name).toEqual(expectedFromNow);
+                expect(tasksDate.fromNow.sortOrder).toEqual(expectedTaskTimeSortOrder);
+            });
+        });
     });
 });
 

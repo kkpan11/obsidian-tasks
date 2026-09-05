@@ -45,36 +45,60 @@ export class EditorSuggestor extends EditorSuggest<SuggestInfoWithContext> {
 
     onTrigger(cursor: EditorPosition, editor: Editor, _file: TFile): EditorSuggestTriggerInfo | null {
         if (!this.settings.autoSuggestInEditor) return null;
-        const line = editor.getLine(cursor.line);
-        if (canSuggestForLine(line, cursor, editor)) {
-            return {
-                start: { line: cursor.line, ch: 0 },
-                end: {
-                    line: cursor.line,
-                    ch: line.length,
-                },
-                query: line,
-            };
+
+        if (_file === undefined) {
+            // We won't be able to save any changes, so tell Obsidian that we cannot make suggestions.
+            // This allows other plugins, such as Natural Language Dates, to have the opportunity
+            // to make suggestions.
+            return null;
         }
-        return null;
+
+        const line = editor.getLine(cursor.line);
+        if (!canSuggestForLine(line, cursor, editor)) {
+            return null;
+        }
+
+        if (this.grabSuggestions(editor, _file, line).length === 0) return null;
+
+        return {
+            start: { line: cursor.line, ch: 0 },
+            end: {
+                line: cursor.line,
+                ch: line.length,
+            },
+            query: line,
+        };
     }
 
     getSuggestions(context: EditorSuggestContext): SuggestInfoWithContext[] {
-        const line = context.query;
-        const currentCursor = context.editor.getCursor();
+        if (context.file === undefined) {
+            // If the editor isn't a real file, we won't be able to locate
+            // the task line where the cursor is, so won't be able to make any
+            // suggestions:
+            return [] as SuggestInfoWithContext[];
+        }
+
+        const suggestions: SuggestInfo[] = this.grabSuggestions(context.editor, context.file, context.query);
+
+        // Add the editor context to all the suggestions
+        return suggestions.map((s) => ({ ...s, context }));
+    }
+
+    private grabSuggestions(editor: Editor, file: TFile, line: string) {
+        const currentCursor = editor.getCursor();
         const allTasks = this.plugin.getTasks();
 
         const taskToSuggestFor = allTasks.find(
-            (task) => task.taskLocation.path == context.file.path && task.taskLocation.lineNumber == currentCursor.line,
+            (task) => task.taskLocation.path == file.path && task.taskLocation.lineNumber == currentCursor.line,
         );
 
-        const markdownFileInfo = this.getMarkdownFileInfo(context);
+        const markdownFileInfo = this.getMarkdownFileInfo(editor);
 
         // If we can't save the file, we should not allow users to choose dependencies.
         // See https://github.com/obsidian-tasks-group/obsidian-tasks/issues/2872
         const canSaveEdits = this.canSaveEdits(markdownFileInfo);
 
-        const suggestions: SuggestInfo[] =
+        return (
             getUserSelectedTaskFormat().buildSuggestions?.(
                 line,
                 currentCursor.ch,
@@ -82,18 +106,16 @@ export class EditorSuggestor extends EditorSuggest<SuggestInfoWithContext> {
                 allTasks,
                 canSaveEdits,
                 taskToSuggestFor,
-            ) ?? [];
-
-        // Add the editor context to all the suggestions
-        return suggestions.map((s) => ({ ...s, context }));
+            ) ?? []
+        );
     }
 
-    private getMarkdownFileInfo(context: EditorSuggestContext) {
+    private getMarkdownFileInfo(editor: Editor): unknown {
         // @ts-expect-error: TS2339: Property cm does not exist on type Editor
-        return context.editor.cm.state.field(editorInfoField);
+        return editor.cm.state.field(editorInfoField);
     }
 
-    private canSaveEdits(markdownFileInfo: any) {
+    private canSaveEdits(markdownFileInfo: unknown): markdownFileInfo is MarkdownView {
         return markdownFileInfo instanceof MarkdownView;
     }
 
@@ -157,7 +179,7 @@ file: '${newTask.path}'
                     value.context.editor.replaceRange(newTask.toFileLineString(), start, end);
                 } else {
                     // Replace Task in File Context
-                    replaceTaskWithTasks({ originalTask: value.taskItDependsOn, newTasks: newTask });
+                    await replaceTaskWithTasks({ originalTask: value.taskItDependsOn, newTasks: newTask });
                 }
             }
         }
@@ -186,7 +208,7 @@ file: '${newTask.path}'
         // the same task can be offered again, and if done in rapid succession,
         // multiple ID fields can be added to individual task lines.
 
-        const markdownFileInfo = this.getMarkdownFileInfo(value.context);
+        const markdownFileInfo = this.getMarkdownFileInfo(value.context.editor);
         if (this.canSaveEdits(markdownFileInfo)) {
             await markdownFileInfo.save();
         }

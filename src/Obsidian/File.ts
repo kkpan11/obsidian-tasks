@@ -44,6 +44,11 @@ export const initializeFile = ({
  * In addition, this function is meant to be called with reasonable confidence
  * that the {@code originalTask} is unmodified and at the exact same section and
  * sectionIdx in the source file it was originally found in. It will fail otherwise.
+ *
+ * If this might be called in a callback some time after the originalTask object was
+ * created, it is recommended that originalTask's {@link TasksFile} has its tFile populated.
+ * This will allow edits to be saved even if the task's Markdown file has been renamed
+ * since the task was originally created.
  */
 export const replaceTaskWithTasks = async ({
     originalTask,
@@ -147,7 +152,7 @@ Recommendations:
 
         const timeout = Math.min(Math.pow(10, previousTries), 100); // 1, 10, 100, 100, 100, ...
         logger.debug(`timeout = ${timeout}`);
-        setTimeout(async () => {
+        window.setTimeout(async () => {
             await tryRepetitive({
                 originalTask,
                 newTasks,
@@ -194,8 +199,8 @@ async function getTaskAndFileLines(task: ListItem, vault: Vault): Promise<[numbe
     // Validate our inputs.
     // For permanent failures, return nothing.
     // For failures that might be fixed if we wait for a little while, return retry().
-    const file = vault.getAbstractFileByPath(task.path);
-    if (!(file instanceof TFile)) {
+    const file = task.file.tFile || vault.getFileByPath(task.path);
+    if (!file) {
         throw new WarningWorthRetrying(`Tasks: No file found for task ${task.description}. Retrying ...`);
     }
 

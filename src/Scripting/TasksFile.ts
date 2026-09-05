@@ -1,31 +1,54 @@
-import { type CachedMetadata, type FrontMatterCache, getAllTags, parseFrontMatterTags } from 'obsidian';
+import {
+    type CachedMetadata,
+    type FrontMatterCache,
+    type Reference,
+    type TFile,
+    getAllTags,
+    parseFrontMatterTags,
+} from 'obsidian';
+import { Link } from '../Task/Link';
 
 export type OptionalTasksFile = TasksFile | undefined;
+
+type Frontmatter = Record<string, unknown>;
 
 /**
  * A simple class to provide access to file information via 'task.file' in scripting code.
  */
 export class TasksFile {
-    private readonly _path: string;
+    private readonly _path: string; // the original path, at the moment of creation.
+    public readonly tFile?: TFile; // the TFile object for the file, needed for reliable writing. Reflects the current path after any renames.
+
     private readonly _cachedMetadata: CachedMetadata;
     // Always make TasksFile.frontmatter.tags exist and be empty, even if no frontmatter present:
-    private readonly _frontmatter = { tags: [] } as any;
+    private readonly _frontmatter = { tags: [] } as Frontmatter;
     private readonly _tags: string[] = [];
 
-    constructor(path: string, cachedMetadata: CachedMetadata = {}) {
+    private readonly _outlinksInProperties: Readonly<Link[]> = [];
+    private readonly _outlinksInBody: Readonly<Link[]> = [];
+
+    constructor(path: string, cachedMetadata: CachedMetadata = {}, tFile?: TFile) {
         this._path = path;
+        this.tFile = tFile;
+
         this._cachedMetadata = cachedMetadata;
 
         const rawFrontmatter = cachedMetadata.frontmatter;
         if (rawFrontmatter !== undefined) {
-            this._frontmatter = JSON.parse(JSON.stringify(rawFrontmatter));
+            this._frontmatter = JSON.parse(JSON.stringify(rawFrontmatter)) as Frontmatter;
             this._frontmatter.tags = parseFrontMatterTags(rawFrontmatter) ?? [];
         }
+        this._outlinksInProperties = this.createLinks(this.cachedMetadata.frontmatterLinks);
+        this._outlinksInBody = this.createLinks(this.cachedMetadata.links);
 
         if (Object.keys(cachedMetadata).length !== 0) {
             const tags = getAllTags(this.cachedMetadata) ?? [];
             this._tags = [...new Set(tags)];
         }
+    }
+
+    private createLinks(obsidianRawLinks: Reference[] | undefined) {
+        return obsidianRawLinks?.map((link) => new Link(link, this.path)) ?? [];
     }
 
     /**
@@ -47,6 +70,27 @@ export class TasksFile {
      */
     get tags(): string[] {
         return this._tags;
+    }
+
+    /**
+     * Return an array of {@link Link} all the links in the file - both in frontmatter and in the file body.
+     */
+    get outlinks(): Readonly<Link[]> {
+        return [...this.outlinksInProperties, ...this.outlinksInBody];
+    }
+
+    /**
+     * Return an array of {@link Link} in the file's properties/frontmatter.
+     */
+    get outlinksInProperties(): Readonly<Link[]> {
+        return this._outlinksInProperties;
+    }
+
+    /**
+     * Return an array of {@link Link} in the body of the file.
+     */
+    get outlinksInBody(): Readonly<Link[]> {
+        return this._outlinksInBody;
     }
 
     /**
@@ -179,7 +223,7 @@ export class TasksFile {
             return false;
         }
 
-        const propertyValue = this.frontmatter[foundKey];
+        const propertyValue: unknown = this.frontmatter[foundKey];
         if (propertyValue === null) {
             return false;
         }
@@ -196,19 +240,19 @@ export class TasksFile {
      * https://publish.obsidian.md/tasks/Getting+Started/Obsidian+Properties#How+does+Tasks+treat+Obsidian+Properties%3F
      * @param key
      */
-    public property(key: string): any {
+    public property(key: string): unknown {
         const foundKey = this.findKeyInFrontmatter(key);
         if (foundKey === undefined) {
             return null;
         }
 
-        const propertyValue = this.frontmatter[foundKey];
+        const propertyValue: unknown = this.frontmatter[foundKey];
         if (propertyValue === undefined) {
             return null;
         }
 
         if (Array.isArray(propertyValue)) {
-            return propertyValue.filter((item: any) => item !== null);
+            return propertyValue.filter((item: unknown) => item !== null);
         }
 
         return propertyValue;

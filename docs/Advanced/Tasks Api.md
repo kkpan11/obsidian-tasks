@@ -35,6 +35,16 @@ export interface TasksApiV1 {
     createTaskLineModal(): Promise<string>;
 
     /**
+     * Opens the Tasks UI pre-filled with the provided task line for editing.
+     * Does not edit the task line in the file, but returns the edited task line as a Markdown string.
+     *
+     * @param taskLine The markdown string of the task line to edit
+     * @returns {Promise<string>} A promise that contains the Markdown string for the edited task or
+     * an empty string in the case where the data entry was cancelled.
+     */
+    editTaskLineModal(taskLine: string): Promise<string>;
+
+    /**
      * Executes the 'Tasks: Toggle task done' command on the supplied line string
      *
      * @param line The markdown string of the task line being toggled
@@ -54,8 +64,6 @@ This method was introduced in Tasks 2.0.0.
 
 This method opens the Tasks [[Create or edit Task|Create or edit task UI]] and returns the Markdown for the task entered.
 If data entry is cancelled, an empty string is returned.
-
-### Basic usage
 
 ```javascript
 const tasksApi = this.app.plugins.plugins['obsidian-tasks-plugin'].apiV1;
@@ -80,7 +88,27 @@ console.log(taskLine);
 One of the most common usage scenarios is probably in combination with the [QuickAdd](https://github.com/chhoumann/quickadd) plugin
 to automatically add tasks to a specific file.
 
-See [[QuickAdd#Launching the Edit task modal via QuickAdd|Launching the Edit task modal via QuickAdd]] for full details of how to do this.
+See [[QuickAdd#Launching the Create task modal via QuickAdd|Launching the Create task modal via QuickAdd]] for full details of how to do this.
+
+## `editTaskLineModal(taskLine: string): Promise<string>;`
+
+> [!released]
+> This method was introduced in Tasks 7.21.0.
+
+This method opens the Tasks [[Create or edit Task|Create or edit task UI]] with the provided task line pre-filled for editing.
+If data entry is cancelled, an empty string is returned.
+
+```javascript
+const tasksApi = this.app.plugins.plugins['obsidian-tasks-plugin'].apiV1;
+let editedTaskLine = await tasksApi.editTaskLineModal('- [ ] My existing task');
+
+// Do whatever you want with the returned value.
+// It's just a string containing the Markdown for the edited task.
+console.log(editedTaskLine);
+```
+
+> [!warning]
+> This function returns a `Promise` - always `await` the result!
 
 ## `executeToggleTaskDoneCommand: (line: string, path: string) => string;`
 
@@ -149,10 +177,29 @@ This can be used, for example, to display the Auto-Suggest on non-task lines. [S
 
 ## Limitations of the Tasks API
 
-- Editing tasks:
-  - It is not yet possible to use the API to edit an *existing task line* with Tasks [[Create or edit Task|Create or edit task UI]]. We are tracking this in [issue #1945](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/1945).
-  - It is not yet possible to use the API to add [[Task Dependencies|dependencies]] with the Tasks [[Create or edit Task|Create or edit task UI]]. We are tracking this in [issue #2993](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/2993).
 - Auto Suggest:
   - It is not yet possible for [[auto-suggest]] to add [[Task Dependencies|dependencies]] when Auto-Suggest is used in [[Kanban plugin]] cards - or any other plugins that use the [[Tasks Api#Auto-Suggest Integration|Auto-Suggest Integration]]. We are tracking this in [issue #3274](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/3274).
 - Searching tasks:
   - It is not yet possible to run Tasks searches via the API. We are tracking this in [issue #2459](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/2459).
+- Ambiguity when `editTaskLineModal()` returns empty string:
+  - `editTaskLineModal()` returns an empty string in both these situations:
+        1. the user clicked Cancel
+        2. the user completed a task like this, which uses  [[On Completion]]'s `delete` facility:
+            - `- [ ] Delete me when done 🏁 delete`
+  - Fixing this would require introducing `TasksApiV1` .
+
+## Support
+
+Before creating a new bug report or feature request about Tasks Api, please check existing items to avoid duplicates.
+
+You do not need to search manually: the links below are already filtered to the label `"scope: for plugin developers"`.
+
+- Check both Open and Closed items.
+- If you find an existing item, support it there instead of adding a `+1` comment. See [[About Support and Help#How to support an existing request|How to support an existing request]].
+
+| Type | Open | Closed | Notes |
+| --- | --- | --- | --- |
+| Issues | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aopen%20label%3A%22scope%3A+for+plugin+developers%22%20is%3Aissue%20) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aclosed%20label%3A%22scope%3A+for+plugin+developers%22%20is%3Aissue%20) | bug reports and feature requests |
+| Discussions | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aopen+label%3A%22scope%3A+for+plugin+developers%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aclosed+label%3A%22scope%3A+for+plugin+developers%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | older feature discussions from before late 2022 |
+
+If you do not find an existing item in Issues or Discussions, see [[About Support and Help]] for how to report a bug or request a feature.

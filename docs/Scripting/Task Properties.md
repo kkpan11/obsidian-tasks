@@ -82,8 +82,8 @@ For more information, including adding your own customised statuses, see [[Statu
 | `task.due.category.sortOrder` | `number` | `3` | `number` | `4` |
 | `task.due.category.groupText` | `string` | `'%%3%% Future'` [^commented] | `string` | `'%%4%% Undated'` [^commented] |
 | `task.due.fromNow.name` | `string` | `'in 22 days'` | `string` | `''` |
-| `task.due.fromNow.sortOrder` | `number` | `320230704` | `number` | `0` |
-| `task.due.fromNow.groupText` | `string` | `'%%320230704%% in 22 days'` [^commented] | `string` | `''` |
+| `task.due.fromNow.sortOrder` | `number` | `3202307040000` | `number` | `0` |
+| `task.due.fromNow.groupText` | `string` | `'%%3202307040000%% in 22 days'` [^commented] | `string` | `''` |
 
 <!-- placeholder to force blank line after included text --><!-- endInclude -->
 
@@ -149,6 +149,7 @@ For more information, including adding your own customised statuses, see [[Statu
 | `task.tags` | `string[]` | `['#todo', '#health']` | `any[]` | `[]` |
 | `task.originalMarkdown` | `string` | `'  - [ ] Do exercises #todo #health 🆔 abcdef ⛔ 123456,abc123 🔼 🔁 every day when done 🏁 delete ➕ 2023-07-01 🛫 2023-07-02 ⏳ 2023-07-03 📅 2023-07-04 ❌ 2023-07-06 ✅ 2023-07-05 ^dcf64c'` | `string` | `'- [/] minimal task'` |
 | `task.lineNumber` | `number` | `17` | `number` | `0` |
+| `task.listMarker` | `string` | `'-'` | `string` | `'-'` |
 
 <!-- placeholder to force blank line after included text --><!-- endInclude -->
 
@@ -180,6 +181,10 @@ For more information, including adding your own customised statuses, see [[Statu
     - `keep`
     - `` (empty string), which is the default, when the task has no [[On Completion]] action specified.
 1. Note that if there is a [[Global Filter]] enabled in settings, and the filter is a tag, it will be removed from `task.tags`.
+1. `task.lineNumber` values begin at `0`, for the first line in the file.
+    - This differs from the [Obsidian CLI](https://obsidian.md/help/cli#Tasks) whose line number values begin at 1.
+1. `task.listMarker` possible values are shown in [[Filters#List Marker]].
+    - Note that this value does not include any indentation or callout characters.
 
 ## Values for File Properties
 
@@ -229,9 +234,40 @@ These are described in full in [[Obsidian Properties]].
 | `task.file.property('sample_link_property')` | `string` | `'[[yaml_all_property_types_populated]]'` |
 | `task.file.property('sample_link_list_property')` | `string[]` | `['[[yaml_all_property_types_populated]]', '[[yaml_all_property_types_empty]]']` |
 | `task.file.property('tags')` | `string[]` | `['#tag-from-file-properties']` |
+| `task.file.property('nested_data').surname` | `string` | `'Doe'` |
+| `task.file.property('nested_data').firstname` | `string` | `'Jane'` |
+| `task.file.property('nested_data')['middle name']` | `string` | `'Frances'` |
+| `task.file.property('object_serialization').nested1` | `string` | `'value1'` |
+| `task.file.property('object_serialization').nested2` | `string` | `'value2'` |
 
 <!-- placeholder to force blank line after included text --><!-- endInclude -->
 
 1. `task.file.hasProperty()` and `task.file.property()` were added in Tasks 7.7.0
 1. `task.file.hasProperty('property name')` returns true if the property `'property name'` is both present in the file and has a non-`null` value.
 1. `task.file.property('property name')` returns either the value in the file, or `null` if there is no value.
+
+## Values for Links
+
+> [!released]
+> Access to the Links was introduced in Tasks 7.21.0.
+
+These are described in full in [[Links]].
+
+<!-- placeholder to force blank line before included text --><!-- include: TaskProperties.test.task_links.approved.md -->
+
+| Field | Type 1 | Example 1 |
+| ----- | ----- | ----- |
+| `task.outlinks` | `Link[]` | `['Test Data/link_in_task_wikilink.md']` |
+| `task.file.outlinksInProperties` | `Link[]` | `['Test Data/link_in_yaml.md', 'Test Data/links_everywhere.md']` |
+| `task.file.outlinksInBody` | `Link[]` | `['Test Data/link_in_file_body.md', 'Test Data/link_in_heading.md', 'Test Data/link_in_task_wikilink.md']` |
+| `task.file.outlinks` | `Link[]` | `['Test Data/link_in_yaml.md', 'Test Data/links_everywhere.md', 'Test Data/link_in_file_body.md', 'Test Data/link_in_heading.md', 'Test Data/link_in_task_wikilink.md']` |
+
+<!-- placeholder to force blank line after included text --><!-- endInclude -->
+
+1. These all return an array of `Link` objects.
+1. The table above shows the result of `link.destinationPath`
+1. `task.outlinks` contains any links in the task description.
+    - It does not contain links in any nested tasks or list items.
+1. `task.file.outlinksInProperties` returns all the links in the task file's [[Obsidian Properties]].
+1. `task.file.outlinksInBody` returns all the links in the body of the note containing the task. Naturally, this includes any links on the task line itself.
+1. `task.file.outlinks` returns all this links in both [[Obsidian Properties]] and the body of the note containing the task.

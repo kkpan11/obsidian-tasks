@@ -25,17 +25,8 @@ import type { SuggestInfo, SuggestionBuilder } from '.';
  */
 export const DEFAULT_MAX_GENERIC_SUGGESTIONS = 5;
 
-declare global {
-    // eslint-disable-next-line no-var
-    var SHOW_DEPENDENCY_SUGGESTIONS: boolean;
-}
-
-// Set default value for production to off, temporarily. It will be turned on in tests.
-export const showDependencySuggestionsDefault = true;
-globalThis.SHOW_DEPENDENCY_SUGGESTIONS = showDependencySuggestionsDefault;
-
 function includeDependencySuggestions(canSaveEdits: boolean) {
-    return globalThis.SHOW_DEPENDENCY_SUGGESTIONS && canSaveEdits;
+    return canSaveEdits;
 }
 
 export interface SuggestorParameters {
@@ -258,7 +249,7 @@ function filterGeneralSuggestionsForWordAtCursor(genericSuggestions: SuggestInfo
     return matchingSuggestions;
 }
 
-function defaultExtractor(symbol: string, suggestionText: any) {
+function defaultExtractor(symbol: string, suggestionText: string) {
     const displayText = `${suggestionText}`;
     const appendText = `${symbol} ${suggestionText}`;
     return { displayText, appendText };
@@ -745,6 +736,16 @@ export function canSuggestForLine(line: string, cursor: EditorPosition, editor: 
     return lineHasGlobalFilter && cursorIsInTaskLineDescription(line, cursor.ch);
 }
 
+interface EditorWithTasksSuggest {
+    editorComponent?: {
+        showTasksPluginAutoSuggest?: (
+            cursor: EditorPosition,
+            editor: Editor,
+            lineHasGlobalFilter: boolean,
+        ) => boolean | undefined;
+    };
+}
+
 /**
  * This function is to specifically allow other plugins to offer Tasks auto suggest.
  *
@@ -766,7 +767,11 @@ function editorIsRequestingSuggest(
     cursor: EditorPosition,
     lineHasGlobalFilter: boolean,
 ): boolean | undefined {
-    return (editor as any)?.editorComponent?.showTasksPluginAutoSuggest?.(cursor, editor, lineHasGlobalFilter);
+    return (editor as unknown as EditorWithTasksSuggest)?.editorComponent?.showTasksPluginAutoSuggest?.(
+        cursor,
+        editor,
+        lineHasGlobalFilter,
+    );
 }
 
 /**

@@ -49,8 +49,9 @@ then
   echo "Running yarn in case node_modules is out-of-date"
   yarn
 
-  echo "Updating X.Y.Z version numbers in docs"
-  find ./docs/ -name _meta -prune -o -type f -name '*.md' -exec sed -i '' s/X\.Y\.Z/${NEW_VERSION}/g {} +
+  echo "Updating X.Y.Z version numbers in docs and resources"
+  find ./docs/      -name _meta -prune -o -type f -name '*.md' -exec sed -i '' s/X\.Y\.Z/${NEW_VERSION}/g {} +
+  find ./resources/ -name _meta -prune -o -type f -name '*.md' -exec sed -i '' s/X\.Y\.Z/${NEW_VERSION}/g {} +
 
   echo "Updating package.json"
   TEMP_FILE=$(mktemp)
@@ -74,8 +75,8 @@ then
     git add -A .
     git commit -m"Update to version ${NEW_VERSION}"
     git tag "${NEW_VERSION}"
-    git push
-    LEFTHOOK=0 git push --tags
+    git push origin main
+    LEFTHOOK=0 git push origin "${NEW_VERSION}"
 
     echo "Remember to publish the documentation via Obsidian Publish!"
   fi

@@ -1,4 +1,3 @@
-import type { DurationInputArg2, Moment, unitOfTime } from 'moment';
 import { Notice } from 'obsidian';
 import { PropertyCategory } from '../lib/PropertyCategory';
 import { TaskRegularExpressions } from '../Task/TaskRegularExpressions';
@@ -18,7 +17,7 @@ export class TasksDate {
      * Return the raw underlying moment (or null, if there is no date)
      */
     get moment(): Moment | null {
-        return this._date;
+        return this._date ? this._date.clone() : null;
     }
 
     /**
@@ -97,18 +96,19 @@ export class TasksDate {
         //   - sorts in ascending order of the date.
 
         const now = window.moment();
-        const earlier = date.isSameOrBefore(now, 'day');
+        const earlier = date.isSameOrBefore(now, 'second');
         const startDateOfThisGroup = this.fromNowStartDateOfGroup(date, earlier, now);
         const splitPastAndFutureDates = earlier ? 1 : 3;
-        return Number(splitPastAndFutureDates + startDateOfThisGroup.format('YYYYMMDD'));
+        return Number(splitPastAndFutureDates + startDateOfThisGroup.format('YYYYMMDDHHmm'));
     }
 
-    private fromNowStartDateOfGroup(date: moment.Moment, earlier: boolean, now: any) {
+    private fromNowStartDateOfGroup(date: moment.Moment, earlier: boolean, now: Moment): Moment {
         // Calculate the earliest of all dates with the same 'fromNow()' name.
 
         // https://momentjs.com/docs/#/displaying/fromnow/
         // 'If you pass true, you can get the value without the suffix.'
-        const words = date.fromNow(true).split(' ');
+        // We change the locale to english, to get values like 'hours', 'days', 'years' that we can pass to Moment.
+        const words = date.clone().locale('en').fromNow(true).split(' ');
 
         let multiplier: number;
         const word0AsNumber = Number(words[0]);
@@ -117,12 +117,16 @@ export class TasksDate {
         } else {
             multiplier = word0AsNumber; // examples: '10 years', '6 months', '11 hours'
         }
-        const unit = words[1] as DurationInputArg2; // day, days, weeks, month, year
+        const unit = words[1] as moment.DurationInputArg2; // day, days, weeks, month, year
         return earlier ? now.subtract(multiplier, unit) : now.add(multiplier, unit);
     }
 
-    public postpone(unitOfTime: unitOfTime.DurationConstructor = 'days', amount: number = 1) {
-        if (!this._date) throw new Notice('Cannot postpone a null date');
+    public postpone(unitOfTime: moment.unitOfTime.DurationConstructor = 'days', amount: number = 1) {
+        if (!this._date) {
+            const message = 'Cannot postpone a null date';
+            new Notice(message);
+            throw new Error(message);
+        }
 
         const today = window.moment().startOf('day');
         // According to the moment.js docs, isBefore is not stable so we use !isSameOrAfter: https://momentjs.com/docs/#/query/is-before/

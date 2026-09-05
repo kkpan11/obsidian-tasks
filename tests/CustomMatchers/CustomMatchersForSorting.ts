@@ -4,11 +4,12 @@ import type { Sorter } from '../../src/Query/Sort/Sorter';
 import type { Task } from '../../src/Task/Task';
 import { compareByDate } from '../../src/DateTime/DateTools';
 import { SearchInfo } from '../../src/Query/SearchInfo';
-import { TasksFile } from '../../src/Scripting/TasksFile';
+import { createTestTasksFile } from '../TestingTools/TasksFileHelpers';
 
 declare global {
     namespace jest {
         interface Matchers<R> {
+            toBeSorted(): R; // see https://www.npmjs.com/package/jest-sorted
             toGiveCompareToResult(expected: number): R;
             toCompareTasksWithResult(expected: number): R;
         }
@@ -40,7 +41,7 @@ expect.extend({
         expect(tasks.length).toEqual(2);
         const taskA = tasks[0];
         const taskB = tasks[1];
-        const actual = sorting.comparator(taskA, taskB, new SearchInfo(new TasksFile('dummy path.md'), tasks));
+        const actual = sorting.comparator(taskA, taskB, new SearchInfo(createTestTasksFile('dummy path.md'), tasks));
 
         let pass;
         let expectedDesription: string;

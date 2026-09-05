@@ -68,6 +68,10 @@ See other pages in 'Getting Started' for more details on due dates and recurrenc
 You cannot toggle a task (un)done in the modal.
 For that, do one of the following.
 
+## Easy finding of tasks
+
+The [[Quick Search|Tasks: Quick Search]] command, added in Tasks 8.4.0, allows you to type part of a task's description and jump straight to it.
+
 ## Completing tasks
 
 There are two ways to mark a task done:
@@ -153,8 +157,8 @@ Editing and toggling tasks in numbered lists works fine: the original number is 
 
 <!-- force a blank line --><!-- include: snippet-callout-titles-bug.md -->
 
-> [!Warning] Warning: Obsidian bug in versions 1.6.0 to 1.6.3 has caused some tasks not to be found
-> See [[Missing tasks in callouts with some Obsidian 1.6.x versions]] for how to ==make Obsidian 1.6.5 fix its metadata cache==, in case it was broken by earlier 1.6.x versions.
+> [!Warning] Warning: Obsidian bug in versions 1.6.0 to 1.6.3 caused some tasks not to be found
+> See [[Missing tasks in callouts with some Obsidian 1.6.x versions]] for how to ==make Obsidian 1.6.5 or newer fix its metadata cache==, in case it was broken by earlier 1.6.x versions.
 
 <!-- force a blank line --><!-- endInclude -->
 Tasks can read tasks that are inside [blockquotes](https://www.markdownguide.org/basic-syntax/#blockquotes-1) or [Obsidian's built-in callouts](https://help.obsidian.md/How+to/Use+callouts).
@@ -171,9 +175,11 @@ Reading tasks inside callouts and blockquotes was introduced in Tasks 1.11.1
 
 If you toggle a task's status in this situation, you will see a warning. Use the command `Tasks: Toggle Done`, or switch to Reading View (book icon in lower right corner) to click the checkbox.
 
+Since Tasks X.Y.X, it is possible to disable this warning message.
+
 Completing a task by clicking its checkbox from a `tasks` query block _will_ work in any editor mode, even if the query is inside a callout.
 
-We are tracking this in [issue #1768](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/1768).
+We are tracking this in [issue #1768](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/1768), but note that the cause is that Obsidian does not provide the line number to indicate which task was clicked on. So this could only be fixed if Obsidian's handling of events in callouts in Live Preview was ever improved.
 
 > [!warning]
 > When tasks are in callouts, any preceding heading in the callout is not read by Tasks, so `group by heading` uses the previous heading outside the callout - or `(No Heading)` if none.

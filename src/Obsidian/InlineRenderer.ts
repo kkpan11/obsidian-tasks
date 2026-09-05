@@ -1,11 +1,11 @@
-import type { MarkdownPostProcessorContext, Plugin } from 'obsidian';
+import type { App, MarkdownPostProcessorContext, Plugin } from 'obsidian';
 import { MarkdownRenderChild } from 'obsidian';
 import { GlobalFilter } from '../Config/GlobalFilter';
 import { TaskLayoutOptions } from '../Layout/TaskLayoutOptions';
 import { QueryLayoutOptions } from '../Layout/QueryLayoutOptions';
 import { TasksFile } from '../Scripting/TasksFile';
 import { Task } from '../Task/Task';
-import { TaskLineRenderer } from '../Renderer/TaskLineRenderer';
+import { TaskLineRenderer, reconcileReplacementTask } from '../Renderer/TaskLineRenderer';
 import { TaskLocation } from '../Task/TaskLocation';
 
 /**
@@ -23,10 +23,14 @@ import { TaskLocation } from '../Task/TaskLocation';
  * See also {@link LivePreviewExtension} which handles Markdown task lines in Obsidian's Live Preview mode.
  */
 export class InlineRenderer {
-    constructor({ plugin }: { plugin: Plugin }) {
+    private readonly app: App;
+
+    constructor({ plugin, app }: { plugin: Plugin; app: App }) {
+        this.app = app;
+
         plugin.registerMarkdownPostProcessor((el, ctx) => {
-            plugin.app.workspace.onLayoutReady(() => {
-                this.markdownPostProcessor(el, ctx);
+            plugin.app.workspace.onLayoutReady(async () => {
+                await this.markdownPostProcessor(el, ctx);
             });
         });
     }
@@ -76,6 +80,9 @@ export class InlineRenderer {
         }
 
         const path = context.sourcePath;
+        const file = this.app.vault.getFileByPath(path) || undefined;
+        const tasksFile = new TasksFile(path, {}, file);
+
         const section = context.getSectionInfo(element);
 
         if (section === null) {
@@ -98,13 +105,7 @@ export class InlineRenderer {
             const precedingHeader = null; // We don't need the preceding header for in-line rendering.
             const task = Task.fromLine({
                 line,
-                taskLocation: new TaskLocation(
-                    new TasksFile(path),
-                    lineNumber,
-                    section.lineStart,
-                    sectionIndex,
-                    precedingHeader,
-                ),
+                taskLocation: new TaskLocation(tasksFile, lineNumber, section.lineStart, sectionIndex, precedingHeader),
                 fallbackDate: null, // We don't need the fallback date for in-line rendering
             });
             if (task !== null) {
@@ -114,8 +115,8 @@ export class InlineRenderer {
         }
 
         const taskLineRenderer = new TaskLineRenderer({
+            obsidianApp: this.app,
             obsidianComponent: childComponent,
-            parentUlElement: element,
             taskLayoutOptions: new TaskLayoutOptions(),
             queryLayoutOptions: new QueryLayoutOptions(),
         });
@@ -133,7 +134,9 @@ export class InlineRenderer {
             }
             const dataLine: string = renderedElement.getAttr('data-line') ?? '0';
             const taskIndex: number = Number.parseInt(dataLine, 10);
-            const taskElement = await taskLineRenderer.renderTaskLine({
+            const taskElement = element.createEl('li');
+            await taskLineRenderer.renderTaskLine({
+                li: taskElement,
                 task,
                 taskIndex,
                 isTaskInQueryFile: true,
@@ -163,7 +166,7 @@ export class InlineRenderer {
                 }
             }
 
-            renderedElement.replaceWith(taskElement);
+            reconcileReplacementTask(renderedElement, taskElement);
         }
     }
 }

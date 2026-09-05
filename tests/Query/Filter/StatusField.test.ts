@@ -38,6 +38,7 @@ describe('status', () => {
         expect(filter).toMatchTaskWithStatus(Status.DONE.configuration);
         expect(filter).toMatchTaskWithStatus(new StatusConfiguration('X', 'Really Done', 'x', true, StatusType.DONE));
         expect(filter).not.toMatchTaskWithStatus(Status.IN_PROGRESS.configuration);
+        expect(filter).not.toMatchTaskWithStatus(Status.ON_HOLD.configuration);
         expect(filter).toMatchTaskWithStatus(Status.CANCELLED.configuration);
         expect(filter).not.toMatchTaskWithStatus(new StatusConfiguration('!', 'Todo', 'x', true, StatusType.TODO)); // 'done' checks type.
         expect(filter).toMatchTaskWithStatus(new StatusConfiguration('^', 'Non', 'x', true, StatusType.NON_TASK));
@@ -54,14 +55,27 @@ describe('status', () => {
             new StatusConfiguration('X', 'Really Done', 'x', true, StatusType.DONE),
         );
         expect(filter).toMatchTaskWithStatus(Status.IN_PROGRESS.configuration);
+        expect(filter).toMatchTaskWithStatus(Status.ON_HOLD.configuration);
         expect(filter).not.toMatchTaskWithStatus(Status.CANCELLED.configuration);
         expect(filter).toMatchTaskWithStatus(new StatusConfiguration('!', 'Todo', 'x', true, StatusType.TODO)); // 'not done' type.
         expect(filter).not.toMatchTaskWithStatus(new StatusConfiguration('^', 'Non', 'x', true, StatusType.NON_TASK));
     });
+});
+
+describe('explaining status', () => {
+    it('should explain "done"', () => {
+        const filter = new StatusField().createFilterOrErrorMessage('done');
+        expect(filter).toHaveExplanation('status type is DONE or CANCELLED or NON_TASK');
+    });
+
+    it('should explain "not done"', () => {
+        const filter = new StatusField().createFilterOrErrorMessage('not done');
+        expect(filter).toHaveExplanation('status type is TODO or IN_PROGRESS or ON_HOLD');
+    });
 
     it('should honour original case, when explaining simple filters', () => {
         const filter = new StatusField().createFilterOrErrorMessage('NOT done');
-        expect(filter).toHaveExplanation('NOT done');
+        expect(filter).toHaveExplanation('status type is TODO or IN_PROGRESS or ON_HOLD');
     });
 });
 

@@ -2,6 +2,14 @@ import moment from 'moment';
 import { TasksDate } from '../../src/DateTime/TasksDate';
 import { TaskRegularExpressions } from '../../src/Task/TaskRegularExpressions';
 import { Task } from '../../src/Task/Task';
+import { Link } from '../../src/Task/Link';
+import type { Query } from '../../src/Query/Query';
+import { JsInTasksQueriesDisabledError } from '../../src/Scripting/JsInTasksQueriesDisabledError';
+
+export function expectQueryErrorToMentionDisabledJavaScript(query: Query, instruction: string): void {
+    expect(query.error).toContain(JsInTasksQueriesDisabledError.helpMessage);
+    expect(query.error).toContain(instruction);
+}
 
 export function formatToRepresentType(x: any): string {
     if (typeof x === 'string') {
@@ -10,6 +18,10 @@ export function formatToRepresentType(x: any): string {
 
     if (moment.isMoment(x)) {
         return `moment('${x.format(TaskRegularExpressions.dateTimeFormat)}')`;
+    }
+
+    if (x instanceof Link) {
+        return formatToRepresentType(x.destinationPath);
     }
 
     if (x instanceof Task) {
@@ -45,6 +57,10 @@ export function determineExpressionType(value: any): string {
 
     if (moment.isMoment(value)) {
         return 'Moment';
+    }
+
+    if (value instanceof Link) {
+        return 'Link';
     }
 
     if (value instanceof Task) {

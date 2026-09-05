@@ -2,7 +2,6 @@
  * @jest-environment jsdom
  */
 import moment from 'moment';
-import { TasksFile } from '../../src/Scripting/TasksFile';
 import { StatusRegistry } from '../../src/Statuses/StatusRegistry';
 import { Status } from '../../src/Statuses/Status';
 import { StatusConfiguration, StatusType } from '../../src/Statuses/StatusConfiguration';
@@ -12,6 +11,7 @@ import type { StatusCollection, StatusCollectionEntry } from '../../src/Statuses
 import * as TestHelpers from '../TestingTools/TestHelpers';
 import * as StatusExamples from '../TestingTools/StatusExamples';
 import { constructStatuses } from '../TestingTools/StatusesTestHelpers';
+import { createTestTasksFile } from '../TestingTools/TasksFileHelpers';
 
 jest.mock('obsidian');
 window.moment = moment;
@@ -213,55 +213,57 @@ describe('StatusRegistry', () => {
             // Assert
             // Without detail:
             expect(statusRegistry.mermaidDiagram(false)).toMatchInlineSnapshot(`
-            "
-            \`\`\`mermaid
-            flowchart LR
+                "
+                \`\`\`mermaid
+                flowchart LR
 
-            classDef TODO        stroke:#f33,stroke-width:3px;
-            classDef DONE        stroke:#0c0,stroke-width:3px;
-            classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
-            classDef CANCELLED   stroke:#ddd,stroke-width:3px;
-            classDef NON_TASK    stroke:#99e,stroke-width:3px;
+                classDef TODO        stroke:#f33,stroke-width:3px;
+                classDef DONE        stroke:#0c0,stroke-width:3px;
+                classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
+                classDef CANCELLED   stroke:#ddd,stroke-width:3px;
+                classDef NON_TASK    stroke:#99e,stroke-width:3px;
+                classDef ON_HOLD     stroke:#00f,stroke-width:3px;
 
-            1["Todo"]:::TODO
-            2["In Progress"]:::IN_PROGRESS
-            3["Done"]:::DONE
-            4["Cancelled"]:::CANCELLED
-            1 --> 3
-            2 --> 3
-            3 --> 1
-            4 --> 1
+                1["Todo"]:::TODO
+                2["In Progress"]:::IN_PROGRESS
+                3["Done"]:::DONE
+                4["Cancelled"]:::CANCELLED
+                1 --> 3
+                2 --> 3
+                3 --> 1
+                4 --> 1
 
-            linkStyle default stroke:gray
-            \`\`\`
-            "
-        `);
+                linkStyle default stroke:gray
+                \`\`\`
+                "
+            `);
 
             // With detail:
             expect(statusRegistry.mermaidDiagram(true)).toMatchInlineSnapshot(`
-            "
-            \`\`\`mermaid
-            flowchart LR
+                "
+                \`\`\`mermaid
+                flowchart LR
 
-            classDef TODO        stroke:#f33,stroke-width:3px;
-            classDef DONE        stroke:#0c0,stroke-width:3px;
-            classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
-            classDef CANCELLED   stroke:#ddd,stroke-width:3px;
-            classDef NON_TASK    stroke:#99e,stroke-width:3px;
+                classDef TODO        stroke:#f33,stroke-width:3px;
+                classDef DONE        stroke:#0c0,stroke-width:3px;
+                classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
+                classDef CANCELLED   stroke:#ddd,stroke-width:3px;
+                classDef NON_TASK    stroke:#99e,stroke-width:3px;
+                classDef ON_HOLD     stroke:#00f,stroke-width:3px;
 
-            1["'Todo'<br>[ ] -> [x]<br>(TODO)"]:::TODO
-            2["'In Progress'<br>[/] -> [x]<br>(IN_PROGRESS)"]:::IN_PROGRESS
-            3["'Done'<br>[x] -> [ ]<br>(DONE)"]:::DONE
-            4["'Cancelled'<br>[-] -> [ ]<br>(CANCELLED)"]:::CANCELLED
-            1 --> 3
-            2 --> 3
-            3 --> 1
-            4 --> 1
+                1["'Todo'<br>[ ] -> [x]<br>(TODO)"]:::TODO
+                2["'In Progress'<br>[/] -> [x]<br>(IN_PROGRESS)"]:::IN_PROGRESS
+                3["'Done'<br>[x] -> [ ]<br>(DONE)"]:::DONE
+                4["'Cancelled'<br>[-] -> [ ]<br>(CANCELLED)"]:::CANCELLED
+                1 --> 3
+                2 --> 3
+                3 --> 1
+                4 --> 1
 
-            linkStyle default stroke:gray
-            \`\`\`
-            "
-        `);
+                linkStyle default stroke:gray
+                \`\`\`
+                "
+            `);
         });
 
         it('should encode symbols in mermaid diagrams when necessary', () => {
@@ -280,55 +282,57 @@ describe('StatusRegistry', () => {
             // Assert
             // Without detail:
             expect(statusRegistry.mermaidDiagram(false)).toMatchInlineSnapshot(`
-            "
-            \`\`\`mermaid
-            flowchart LR
+                "
+                \`\`\`mermaid
+                flowchart LR
 
-            classDef TODO        stroke:#f33,stroke-width:3px;
-            classDef DONE        stroke:#0c0,stroke-width:3px;
-            classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
-            classDef CANCELLED   stroke:#ddd,stroke-width:3px;
-            classDef NON_TASK    stroke:#99e,stroke-width:3px;
+                classDef TODO        stroke:#f33,stroke-width:3px;
+                classDef DONE        stroke:#0c0,stroke-width:3px;
+                classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
+                classDef CANCELLED   stroke:#ddd,stroke-width:3px;
+                classDef NON_TASK    stroke:#99e,stroke-width:3px;
+                classDef ON_HOLD     stroke:#00f,stroke-width:3px;
 
-            1["Todo &lt;"]:::TODO
-            2["Todo &gt;"]:::TODO
-            3["Todo &quot;"]:::TODO
-            4["Todo &amp;"]:::TODO
-            1 --> 1
-            2 --> 2
-            3 --> 3
-            4 --> 4
+                1["Todo &lt;"]:::TODO
+                2["Todo &gt;"]:::TODO
+                3["Todo &quot;"]:::TODO
+                4["Todo &amp;"]:::TODO
+                1 --> 1
+                2 --> 2
+                3 --> 3
+                4 --> 4
 
-            linkStyle default stroke:gray
-            \`\`\`
-            "
-        `);
+                linkStyle default stroke:gray
+                \`\`\`
+                "
+            `);
 
             // With detail:
             expect(statusRegistry.mermaidDiagram(true)).toMatchInlineSnapshot(`
-            "
-            \`\`\`mermaid
-            flowchart LR
+                "
+                \`\`\`mermaid
+                flowchart LR
 
-            classDef TODO        stroke:#f33,stroke-width:3px;
-            classDef DONE        stroke:#0c0,stroke-width:3px;
-            classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
-            classDef CANCELLED   stroke:#ddd,stroke-width:3px;
-            classDef NON_TASK    stroke:#99e,stroke-width:3px;
+                classDef TODO        stroke:#f33,stroke-width:3px;
+                classDef DONE        stroke:#0c0,stroke-width:3px;
+                classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
+                classDef CANCELLED   stroke:#ddd,stroke-width:3px;
+                classDef NON_TASK    stroke:#99e,stroke-width:3px;
+                classDef ON_HOLD     stroke:#00f,stroke-width:3px;
 
-            1["'Todo &lt;'<br>[&lt;] -> [&lt;]<br>(TODO)"]:::TODO
-            2["'Todo &gt;'<br>[&gt;] -> [&gt;]<br>(TODO)"]:::TODO
-            3["'Todo &quot;'<br>[&quot;] -> [&quot;]<br>(TODO)"]:::TODO
-            4["'Todo &amp;'<br>[&amp;] -> [&amp;]<br>(TODO)"]:::TODO
-            1 --> 1
-            2 --> 2
-            3 --> 3
-            4 --> 4
+                1["'Todo &lt;'<br>[&lt;] -> [&lt;]<br>(TODO)"]:::TODO
+                2["'Todo &gt;'<br>[&gt;] -> [&gt;]<br>(TODO)"]:::TODO
+                3["'Todo &quot;'<br>[&quot;] -> [&quot;]<br>(TODO)"]:::TODO
+                4["'Todo &amp;'<br>[&amp;] -> [&amp;]<br>(TODO)"]:::TODO
+                1 --> 1
+                2 --> 2
+                3 --> 3
+                4 --> 4
 
-            linkStyle default stroke:gray
-            \`\`\`
-            "
-        `);
+                linkStyle default stroke:gray
+                \`\`\`
+                "
+            `);
         });
 
         it('should not include unknown nextStatusSymbols in mermaid diagrams', () => {
@@ -345,23 +349,24 @@ describe('StatusRegistry', () => {
             // Assert
             expect(statusRegistry.registeredStatuses.length).toEqual(originalNumberOfStatuses);
             expect(mermaidText).toMatchInlineSnapshot(`
-            "
-            \`\`\`mermaid
-            flowchart LR
+                "
+                \`\`\`mermaid
+                flowchart LR
 
-            classDef TODO        stroke:#f33,stroke-width:3px;
-            classDef DONE        stroke:#0c0,stroke-width:3px;
-            classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
-            classDef CANCELLED   stroke:#ddd,stroke-width:3px;
-            classDef NON_TASK    stroke:#99e,stroke-width:3px;
+                classDef TODO        stroke:#f33,stroke-width:3px;
+                classDef DONE        stroke:#0c0,stroke-width:3px;
+                classDef IN_PROGRESS stroke:#fa0,stroke-width:3px;
+                classDef CANCELLED   stroke:#ddd,stroke-width:3px;
+                classDef NON_TASK    stroke:#99e,stroke-width:3px;
+                classDef ON_HOLD     stroke:#00f,stroke-width:3px;
 
-            1["Todo"]:::TODO
+                1["Todo"]:::TODO
 
 
-            linkStyle default stroke:gray
-            \`\`\`
-            "
-        `);
+                linkStyle default stroke:gray
+                \`\`\`
+                "
+            `);
         });
     });
 
@@ -372,7 +377,7 @@ describe('StatusRegistry', () => {
         const sectionIndex = 1209;
         const precedingHeader = 'Eloquent Section';
         const taskLocation = new TaskLocation(
-            new TasksFile(path),
+            createTestTasksFile(path),
             lineNumber,
             sectionStart,
             sectionIndex,

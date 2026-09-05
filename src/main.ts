@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Plugin, type Reference, getLinkpath } from 'obsidian';
 
 import type { Task } from 'Task/Task';
 import { i18n, initializeI18n } from './i18n/i18n';
@@ -19,6 +19,9 @@ import { StatusSettings } from './Config/StatusSettings';
 import { tasksApiV1 } from './Api';
 import { GlobalFilter } from './Config/GlobalFilter';
 import { QueryFileDefaults } from './Query/QueryFileDefaults';
+import { LinkResolver } from './Task/LinkResolver';
+import { ObsidianLocalStorageProvider } from './Config/ObsidianLocalStorageProvider';
+import { EnableJsInTasksQueries } from './Config/EnableJsInTasksQueries';
 
 export default class TasksPlugin extends Plugin {
     private cache: Cache | undefined;
@@ -26,7 +29,7 @@ export default class TasksPlugin extends Plugin {
     public queryRenderer: QueryRenderer | undefined;
 
     get apiV1() {
-        return tasksApiV1(this.app);
+        return tasksApiV1(this);
     }
 
     async onload() {
@@ -37,11 +40,22 @@ export default class TasksPlugin extends Plugin {
 
         await this.loadSettings();
 
+        EnableJsInTasksQueries.initialise(new ObsidianLocalStorageProvider(this.app));
+
         // Configure logging.
         const { loggingOptions } = getSettings();
         logging.configure(loggingOptions);
 
-        this.addSettingTab(new SettingsTab({ plugin: this }));
+        // Configure LinkResolver.getInstance().resolve(), to ensure that links know where Obsidian will resolve them to:
+        LinkResolver.getInstance().setGetFirstLinkpathDestFn((link: Reference, sourcePath: string) => {
+            const linkpath = getLinkpath(link.link);
+            const tFile = this.app.metadataCache.getFirstLinkpathDest(linkpath, sourcePath);
+            return tFile ? tFile.path : null;
+        });
+
+        const events = new TasksEvents({ obsidianEvents: this.app.workspace });
+
+        this.addSettingTab(new SettingsTab({ plugin: this, events }));
 
         initializeFile({
             metadataCache: this.app.metadataCache,
@@ -52,7 +66,6 @@ export default class TasksPlugin extends Plugin {
         // Load configured status types.
         await this.loadTaskStatuses();
 
-        const events = new TasksEvents({ obsidianEvents: this.app.workspace });
         this.cache = new Cache({
             metadataCache: this.app.metadataCache,
             vault: this.app.vault,
@@ -60,13 +73,13 @@ export default class TasksPlugin extends Plugin {
             events,
         });
 
-        this.inlineRenderer = new InlineRenderer({ plugin: this });
+        this.inlineRenderer = new InlineRenderer({ plugin: this, app: this.app });
         this.queryRenderer = new QueryRenderer({ plugin: this, events });
 
         // Update types.json.
         this.setObsidianPropertiesTypes();
 
-        this.registerEditorExtension(newLivePreviewExtension());
+        this.registerEditorExtension(newLivePreviewExtension(this));
         this.registerEditorSuggest(new EditorSuggestor(this.app, getSettings(), this));
         new Commands({ plugin: this });
     }

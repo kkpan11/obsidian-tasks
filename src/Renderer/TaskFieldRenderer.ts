@@ -1,5 +1,3 @@
-import type { Moment } from 'moment';
-
 import type { TaskLayoutComponent } from '../Layout/TaskLayoutOptions';
 import { PriorityTools } from '../lib/PriorityTools';
 import type { Task } from '../Task/Task';
@@ -122,7 +120,7 @@ export class TaskFieldHTMLData {
     constructor(className: string, attributeName: string, attributeValueCalculator: AttributeValueCalculator) {
         // If className is empty, `span.classList.add(...componentClass);` will fail in runtime.
         if (className === '') {
-            throw Error('Developer note: CSS class cannot be an empty string, please specify one.');
+            throw new Error('Developer note: CSS class cannot be an empty string, please specify one.');
         }
         this.className = className;
         this.attributeName = attributeName;

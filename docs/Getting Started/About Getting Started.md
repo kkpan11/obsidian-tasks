@@ -12,6 +12,8 @@ publish: true
 - [[Getting Started]]
   - Descriptive overview of setting up your tasks.
   - Also has a long list of known limitations.
+- [[Quick Search]]
+  - Quickly find a task by searching for its description.
 - [[Global Filter]]
   - **Optionally** set a global filter so Tasks only matches specific checklist items.
   - See also [[Global Query]], which is much more powerful, once you know how searching works.
@@ -32,7 +34,7 @@ publish: true
 - [[Statuses]]
   - Also known as Custom Checkboxes.
   - In vanilla Obsidian tasks are either 'TODO' or 'DONE'.
-  - Statuses allow you to track `IN_PROGRESS`, `CANCELLED` and `NON_TASK` actions too.
+  - Statuses allow you to track `IN_PROGRESS`, `ON_HOLD`, `CANCELLED` and `NON_TASK` actions too.
 - [[Use Filename as Default Date]]
   - Automatically set a scheduled date for tasks based on the name of their files.
 - [[Tags]]
@@ -45,6 +47,8 @@ publish: true
   - Then adjust your searches, perhaps to see tasks that are [[Filters#Blocking Tasks|blocking others]], or hide ones that are [[Filters#Blocked Tasks|blocked]] and cannot yet be done.
 - [[Obsidian Properties]]
   - Learn how to use data in Obsidian [Properties](https://help.obsidian.md/Editing+and+formatting/Properties) in your queries, for example to only search tasks in Kanban plugin files.
+- [[Links]]
+  - Learn how to search for tasks based upon [Links between notes](https://help.obsidian.md/link-notes).
 
 ## Easy editing of tasks
 

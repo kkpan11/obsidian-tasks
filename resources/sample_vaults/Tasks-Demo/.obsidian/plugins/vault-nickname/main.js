@@ -29,13 +29,18 @@ __export(main_exports, {
 module.exports = __toCommonJS(main_exports);
 var import_obsidian = require("obsidian");
 var DEFAULT_PLUGIN_SETTINGS = {
-  overrideAppTitle: "override-app-title:file-first"
+  overrideAppTitle: "override-app-title:file-first",
+  /// Whether to save an additional .vault-nickname in the vault's root (for
+  /// backwards compatibility with plugins before 1.1.9).
+  ///
+  enableBackwardsCompatibilty: false
 };
 var DEFAULT_SHARED_SETTINGS = {
   nickname: "My Vault Nickname"
 };
 var PATH_SEPARATOR = import_obsidian.Platform.isWin ? "\\" : "/";
-var VAULT_LOCAL_SHARED_SETTINGS_FILE_PATH = ".vault-nickname";
+var VAULT_SHARED_SETTINGS_FILE_PATH = "data-shared.json";
+var VAULT_LOCAL_LEGACY_SHARED_SETTINGS_FILE_PATH = ".vault-nickname";
 var VaultNicknamePlugin = class extends import_obsidian.Plugin {
   constructor() {
     super(...arguments);
@@ -47,22 +52,42 @@ var VaultNicknamePlugin = class extends import_obsidian.Plugin {
   }
   async onload() {
     this.isEnabled = true;
-    this.desktopVaultSwitcherClickCallback = this.onDesktopVaultSwitcherClicked.bind(this);
-    this.desktopVaultSwitcherContextMenuCallback = this.onDesktopVaultSwitcherContextMenu.bind(this);
     this.vaultItemRenamedCallback = this.onVaultItemRenamed.bind(this);
     this.activeLeafChangeCallback = this.onActiveLeafChange.bind(this);
-    await this.loadSettings();
-    const settingsFilePath = this.getSharedSettingsFilePath();
-    let saveSettingsExist = false;
-    await this.app.vault.adapter.exists(settingsFilePath).then(
-      (exists) => {
-        saveSettingsExist = exists;
-      },
-      (rejectReason) => {
-        saveSettingsExist = false;
+    const sharedSettingsFilePath = this.getSharedSettingsFilePath();
+    const legacySettingsFilePath = this.getLegacySharedSettingsFilePath();
+    let sharedSettingsExists = false;
+    try {
+      sharedSettingsExists = this.filePathExistsSync(sharedSettingsFilePath);
+    } catch (e) {
+      console.error("Could not determine if settings file exists: " + sharedSettingsFilePath);
+    }
+    let legacySettingsExists = false;
+    try {
+      legacySettingsExists = this.filePathExistsSync(legacySettingsFilePath);
+    } catch (e) {
+      console.error("Could not determine if legacy settings file exists: " + legacySettingsFilePath);
+    }
+    let migratedFromLegacySettings = false;
+    if (legacySettingsExists && !sharedSettingsExists) {
+      try {
+        this.copyUtf8FileSync(
+          legacySettingsFilePath,
+          sharedSettingsFilePath
+        );
+        console.log("Migrated a legacy shared settings file into the plugin's install directory: " + sharedSettingsFilePath);
+        sharedSettingsExists = true;
+        migratedFromLegacySettings = true;
+      } catch (e) {
+        console.error("Failed to migrate the legacy nickname settings file.");
       }
-    );
-    if (!saveSettingsExist) {
+    }
+    await this.loadSettings();
+    if (migratedFromLegacySettings) {
+      this.settings.enableBackwardsCompatibilty = true;
+    }
+    const needsLegacySettingsSaved = this.settings.enableBackwardsCompatibilty && !legacySettingsExists;
+    if (!sharedSettingsExists || needsLegacySettingsSaved) {
       await this.saveSettings();
     }
     this.addSettingTab(new VaultNicknameSettingTab(this.app, this));
@@ -72,27 +97,50 @@ var VaultNicknamePlugin = class extends import_obsidian.Plugin {
   }
   onunload() {
     this.isEnabled = false;
-    this.useDesktopVaultSwitcherCallbacks(false);
+    this.useVaultSwitcherCallbacks(false);
     this.refreshVaultDisplayName();
+    if (this.desktopVaultSwitcherElement) {
+      this.desktopVaultSwitcherElement.remove();
+      this.desktopVaultSwitcherElement = null;
+    }
   }
+  /// Creates an invisible 'interceptor' element over the vault switcher
+  /// element. This is used to catch click events and recreate Obsidian's
+  /// normal menus, but displaying the vault nicknames. This was necessary
+  /// to make the plugin work on macOS where these context menus are rendered
+  /// natively and otherwise couldn't be modified.
+  ///
   onLayoutReady() {
-    this.desktopVaultSwitcherElement = window.activeDocument.querySelector(".workspace-drawer-vault-switcher");
-    this.useDesktopVaultSwitcherCallbacks(true);
+    const originalDesktopVaultSwitcherElement = window.activeDocument.querySelector(".workspace-drawer-vault-switcher");
+    if (!originalDesktopVaultSwitcherElement) {
+      console.error("Vault switcher element not found. Cannot create element to intercept its events.");
+    } else {
+      originalDesktopVaultSwitcherElement.style.position = "relative";
+      this.desktopVaultSwitcherElement = originalDesktopVaultSwitcherElement.createDiv(".workspace-drawer-vault-switcher-vault-nickname-interceptor");
+      Object.assign(
+        this.desktopVaultSwitcherElement.style,
+        {
+          position: "absolute",
+          top: "0",
+          left: "0",
+          width: "100%",
+          height: "100%",
+          backgroundColor: "transparent",
+          display: "none"
+        }
+      );
+      this.desktopVaultSwitcherElement.addEventListener("click", this.onVaultSwitcherClicked.bind(this));
+      this.desktopVaultSwitcherElement.addEventListener("contextmenu", this.onVaultSwitcherContextMenu.bind(this));
+      this.useVaultSwitcherCallbacks(true);
+    }
     this.refreshVaultDisplayName();
   }
-  useDesktopVaultSwitcherCallbacks(use) {
+  useVaultSwitcherCallbacks(use) {
     if (import_obsidian.Platform.isMobile) {
       return;
     }
-    if (!this.desktopVaultSwitcherElement) {
-      console.error("Vault switcher element not found. Cannot update its events.");
-      return;
-    }
-    this.desktopVaultSwitcherElement.removeEventListener("click", this.desktopVaultSwitcherClickCallback);
-    this.desktopVaultSwitcherElement.removeEventListener("contextmenu", this.desktopVaultSwitcherContextMenuCallback);
-    if (use) {
-      this.desktopVaultSwitcherElement.addEventListener("click", this.desktopVaultSwitcherClickCallback);
-      this.desktopVaultSwitcherElement.addEventListener("contextmenu", this.desktopVaultSwitcherContextMenuCallback);
+    if (this.desktopVaultSwitcherElement) {
+      this.desktopVaultSwitcherElement.style.display = use ? "block" : "hidden";
     }
   }
   /// Query for a selector. If not found, try observing for
@@ -119,29 +167,6 @@ var VaultNicknamePlugin = class extends import_obsidian.Plugin {
       });
     });
   }
-  /// Wait for an element to be removed.
-  ///
-  async waitForElementToBeRemoved(element, timeoutMilliseconds) {
-    return new Promise((resolve) => {
-      const parent = element.parentNode;
-      if (!parent) {
-        resolve();
-        return;
-      }
-      const timeout = setTimeout(() => resolve(), timeoutMilliseconds);
-      const observer = new MutationObserver(() => {
-        if (!element.parentNode) {
-          clearTimeout(timeout);
-          observer.disconnect();
-          resolve();
-        }
-      });
-      observer.observe(parent, {
-        childList: true,
-        subtree: true
-      });
-    });
-  }
   /// Invoked when a vault item is renamed. Applies the vault's nickname to
   /// the window title.
   ///
@@ -158,105 +183,84 @@ var VaultNicknamePlugin = class extends import_obsidian.Plugin {
   /// This function changes the vault names shown in the vault popup menu
   /// to the names provided by the vault's personal Vault Nickname plugin.
   ///
-  async onDesktopVaultSwitcherClicked() {
-    if (import_obsidian.Platform.isMobile) {
+  onVaultSwitcherClicked(event2) {
+    if (event2.shiftKey) {
       return;
     }
-    if (this.desktopVaultSwitcherElement && this.desktopVaultSwitcherElement.hasClass("has-active-menu")) {
-      return;
-    }
-    const vaultSwitcherMenu = await this.waitForSelector(window.activeDocument, ".menu", 100);
-    if (!vaultSwitcherMenu) {
-      console.error("The vault switcher menu was not found after the timeout.");
-      return;
-    }
-    const vaults = electron.ipcRenderer.sendSync("vault-list");
-    if (!vaults) {
-      console.error("Failed to retrieve list of known vaults.");
-    }
-    const vaultKeys = Object.keys(vaults);
-    const menuItems = vaultSwitcherMenu.querySelectorAll(".menu-item");
-    const min = Math.min(menuItems.length, vaultKeys.length);
-    for (let i = 0; i < min; ++i) {
-      const vaultKey = vaultKeys[i];
+    event2.stopPropagation();
+    const vaults = require("electron").ipcRenderer.sendSync("vault-list");
+    const menu = new import_obsidian.Menu();
+    for (let vaultKey in vaults) {
       const vault = vaults[vaultKey];
-      const titleElement = menuItems[i].querySelector(".menu-item-title");
-      if (!titleElement) {
-        console.error("No title element for this vault: " + vault.path);
-        continue;
+      const vaultPath = this.safeNormalizePath(vault.path);
+      let vaultName = vaultPath.substring(vaultPath.lastIndexOf("/") + 1);
+      let pluginInstallDir = this.manifest.dir;
+      const vaultConfigFolderName = import_obsidian.App.getOverrideConfigDir(vaultKey);
+      if (vaultConfigFolderName) {
+        const parts = pluginInstallDir.split(PATH_SEPARATOR);
+        parts[0] = vaultConfigFolderName;
+        pluginInstallDir = parts.join(PATH_SEPARATOR);
       }
-      const vaultPluginSettingsFilePath = (0, import_obsidian.normalizePath)([
-        vault.path,
-        VAULT_LOCAL_SHARED_SETTINGS_FILE_PATH
+      let vaultPluginSettingsFilePath = this.safeNormalizePath([
+        vaultPath,
+        pluginInstallDir,
+        VAULT_SHARED_SETTINGS_FILE_PATH
       ].join(PATH_SEPARATOR));
-      if (!this.filePathExistsSync(vaultPluginSettingsFilePath)) {
-        continue;
+      let settingsFileExists = this.filePathExistsSync(vaultPluginSettingsFilePath);
+      if (!settingsFileExists) {
+        vaultPluginSettingsFilePath = this.safeNormalizePath([
+          vaultPath,
+          VAULT_LOCAL_LEGACY_SHARED_SETTINGS_FILE_PATH
+        ].join(PATH_SEPARATOR));
+        settingsFileExists = this.filePathExistsSync(vaultPluginSettingsFilePath);
       }
-      const vaultPluginSettingsJson = this.readUtf8FileSync(vaultPluginSettingsFilePath);
-      if (!vaultPluginSettingsJson) {
-        continue;
+      if (settingsFileExists) {
+        const vaultPluginSettingsJson = this.readUtf8FileSync(vaultPluginSettingsFilePath);
+        if (vaultPluginSettingsJson) {
+          const vaultPluginSettings = JSON.parse(vaultPluginSettingsJson);
+          if (vaultPluginSettings && vaultPluginSettings.nickname && vaultPluginSettings.nickname.trim()) {
+            vaultName = vaultPluginSettings.nickname.trim();
+          }
+        }
       }
-      const vaultPluginSettings = JSON.parse(vaultPluginSettingsJson);
-      if (!vaultPluginSettings || !vaultPluginSettings.nickname || !vaultPluginSettings.nickname.trim()) {
-        continue;
-      }
-      titleElement.textContent = vaultPluginSettings.nickname;
+      menu.addItem(
+        (item) => item.setTitle(vaultName).setChecked(vault.path === this.app.vault.adapter.basePath).onClick(
+          () => window.open(`obsidian://open?vault=${vaultKey}`)
+        )
+      );
     }
+    menu.addSeparator();
+    menu.addItem(
+      (item) => item.setTitle(window.OBSIDIAN_DEFAULT_I18N.interface.manageVaults).setIcon("open-vault").onClick(
+        () => this.app.commands.executeCommandById("app:open-vault")
+      )
+    );
+    menu.showAtMouseEvent(event2);
   }
   /// Invoked when the user context-clicks on the vault switcher drop down.
   /// Adds a "Set nickname" item to the spawned menu as a shortcut to the
   /// plugin's settings page.
   ///
-  async onDesktopVaultSwitcherContextMenu() {
+  async onVaultSwitcherContextMenu() {
     if (import_obsidian.Platform.isMobile) {
       return;
     }
-    if (this.desktopVaultSwitcherElement && this.desktopVaultSwitcherElement.hasClass("has-active-menu")) {
-      const alreadyOpenMenu = window.activeDocument.querySelector(".menu");
-      if (alreadyOpenMenu) {
-        await this.waitForElementToBeRemoved(alreadyOpenMenu, 200);
-      }
-    }
-    const vaultSwitcherMenu = await this.waitForSelector(window.activeDocument, ".menu", 200);
-    if (!vaultSwitcherMenu) {
-      console.error("The vault switcher menu was not found after the timeout.");
+    if (event.shiftKey) {
       return;
     }
-    const templateMenuItem = vaultSwitcherMenu.querySelector(".menu-item");
-    if (!templateMenuItem) {
-      console.error("No menu-item to clone");
-      return;
-    }
-    const openSettingsMenuItem = templateMenuItem.cloneNode(true);
-    if (!openSettingsMenuItem) {
-      console.error("Failed to clone menu-item");
-      return;
-    }
-    const openSettingsMenuItemIcon = openSettingsMenuItem.querySelector(".menu-item-icon");
-    if (openSettingsMenuItemIcon) {
-      openSettingsMenuItemIcon.toggleVisibility(false);
-    }
-    const openSettingsMenuItemLabel = openSettingsMenuItem.querySelector(".menu-item-title");
-    if (!openSettingsMenuItemLabel) {
-      console.error("No menu-item-title in cloned menu-item");
-      return;
-    }
-    openSettingsMenuItemLabel.textContent = "Set nickname";
-    openSettingsMenuItem.addEventListener("click", this.openVaultNicknameSettings.bind(this));
-    const onMouseOver = function() {
-      const parent = this.parentElement;
-      const menuItems = parent.querySelectorAll(".menu-item");
-      for (const menuItem of menuItems) {
-        menuItem.removeClass("selected");
-      }
-      this.addClass("selected");
-    };
-    const onMouseLeave = function() {
-      this.removeClass("selected");
-    };
-    openSettingsMenuItem.addEventListener("mouseover", onMouseOver.bind(openSettingsMenuItem));
-    openSettingsMenuItem.addEventListener("mouseleave", onMouseLeave.bind(openSettingsMenuItem));
-    vaultSwitcherMenu.appendChild(openSettingsMenuItem);
+    event.stopPropagation();
+    const menu = new import_obsidian.Menu();
+    const showInFolderText = import_obsidian.Platform.isMacOS ? window.OBSIDIAN_DEFAULT_I18N.plugins.openWithDefaultApp.actionShowInFolderMac : window.OBSIDIAN_DEFAULT_I18N.plugins.openWithDefaultApp.actionShowInFolder;
+    menu.addItem(
+      (item) => item.setTitle(`${showInFolderText}...`).setIcon("lucide-arrow-up-right").onClick(
+        () => this.app.showInFolder("")
+      )
+    );
+    menu.addSeparator();
+    menu.addItem(
+      (item) => item.setTitle("Vault Nickname settings").setIcon("settings").onClick(() => this.openVaultNicknameSettings())
+    );
+    menu.showAtMouseEvent(event);
   }
   /// Invoked by the custom "Set nickname" menu item added to the vault
   /// switcher's context menu. Opens the plugins setting page for quick
@@ -350,9 +354,8 @@ var VaultNicknamePlugin = class extends import_obsidian.Plugin {
       ].join(titleSeparator);
     }
   }
-  /// Load the vault's nickname. Currently, a hidden file in the root of the
-  /// vault is used because it simplifies sharing vault nicknames between
-  /// other instances of the plugin.
+  /// Load the vault's nickname. A file in the vault's nickname plugin folder
+  /// is used. If no settings file exists, default values will be applied.
   ///
   async loadSettings() {
     const loadedSharedSettings = Object.assign({}, DEFAULT_SHARED_SETTINGS);
@@ -370,15 +373,19 @@ var VaultNicknamePlugin = class extends import_obsidian.Plugin {
     this.settings = Object.assign({}, DEFAULT_PLUGIN_SETTINGS, await this.loadData());
     this.refreshVaultDisplayName();
   }
-  /// Write the vault's nickname to disk. Currently, a hidden file in the
-  /// root of the vault is used because it simplifies sharing vault nicknames
-  /// between other instances of the plugin.
+  /// Write the vault's nickname to disk. We write a separate "shared
+  /// settings" file which is intended to be accessed by other instances of
+  /// the plugin installed in other vaults. This shared file may exist in
+  /// the plugin's install folder and/or in the vault's root (to support older
+  /// versions of the app).
   ///
   async saveSettings() {
+    const sharedSettingsJson = JSON.stringify(this.sharedSettings, null, 2);
     const sharedSettingsFilePath = this.getSharedSettingsFilePath();
-    if (sharedSettingsFilePath) {
-      const sharedSettingsJson = JSON.stringify(this.sharedSettings, null, 2);
-      this.writeUtf8FileSync(sharedSettingsFilePath, sharedSettingsJson);
+    this.writeUtf8FileSync(sharedSettingsFilePath, sharedSettingsJson);
+    if (this.settings.enableBackwardsCompatibilty) {
+      const legacySettingsFilePath = this.getLegacySharedSettingsFilePath();
+      this.writeUtf8FileSync(legacySettingsFilePath, sharedSettingsJson);
     }
     await this.saveData(this.settings);
     this.refreshVaultDisplayName();
@@ -405,27 +412,55 @@ var VaultNicknamePlugin = class extends import_obsidian.Plugin {
     }
     return explodedVaultPath[indexOfParentFolder].trim();
   }
-  /// Get the absolute path to this vault's nickname settings. This is a
-  /// hidden file in the root of the vault. Ideally, we would have this file
-  /// in the plugin's install folder but it is currently tricky to access
-  /// files in other vaults' config folder.
+  /// Get the absolute path to this vault's nickname settings file. This file
+  /// exists in the plugin's install folder.
   ///
   getSharedSettingsFilePath() {
-    return [
+    return this.safeNormalizePath([
       this.app.vault.adapter.getBasePath(),
-      VAULT_LOCAL_SHARED_SETTINGS_FILE_PATH
-    ].join(PATH_SEPARATOR);
+      this.manifest.dir,
+      VAULT_SHARED_SETTINGS_FILE_PATH
+    ].join(PATH_SEPARATOR));
+  }
+  /// Get the absolute path to this vault's legacy nickname settings file.
+  /// This is a hidden file in the root of the vault. This file has since been
+  /// migrated to the plugin's install folder but may still exist for
+  /// backwards compatibility reasons.
+  ///
+  getLegacySharedSettingsFilePath() {
+    return this.safeNormalizePath([
+      this.app.vault.adapter.getBasePath(),
+      VAULT_LOCAL_LEGACY_SHARED_SETTINGS_FILE_PATH
+    ].join(PATH_SEPARATOR));
+  }
+  /// Ensure a path is that was prepended with a leading slash stays prepended
+  /// with a slash (only necessary on Linux). This is intended to resolve an
+  /// inconsistency with how paths are normalized between Mac and Linux.
+  ///
+  safeNormalizePath(path) {
+    const needsPathSeparatorPrepended = path.startsWith(PATH_SEPARATOR);
+    path = (0, import_obsidian.normalizePath)(path);
+    if (needsPathSeparatorPrepended) {
+      path = PATH_SEPARATOR + path;
+    }
+    return path;
   }
   // Using synchronous calls because they prevent momentary flicker when
-  // vault nicknames are applied.
+  // vault nicknames are applied. These methods call directly into the file
+  // system API because the adapter does not allow us to view hidden files
+  // or files inside the plugin's install folder.
   filePathExistsSync(absoluteFilePath) {
     return this.app.vault.adapter.fs.existsSync(absoluteFilePath);
   }
   readUtf8FileSync(absoluteFilePath) {
-    return this.app.vault.adapter.fs.readFileSync(absoluteFilePath, "utf8");
+    const content = this.app.vault.adapter.fs.readFileSync(absoluteFilePath, "utf8");
+    return content.charCodeAt(0) === 65279 ? content.slice(1) : content;
   }
   writeUtf8FileSync(absoluteFilePath, content) {
     this.app.vault.adapter.fs.writeFileSync(absoluteFilePath, content, "utf8");
+  }
+  copyUtf8FileSync(originalAbsoluteFilePath, newAbsoluteFilePath) {
+    this.app.vault.adapter.fs.copyFileSync(originalAbsoluteFilePath, newAbsoluteFilePath);
   }
 };
 var VaultNicknameSettingTab = class extends import_obsidian.PluginSettingTab {
@@ -468,6 +503,25 @@ var VaultNicknameSettingTab = class extends import_obsidian.PluginSettingTab {
         });
       });
     }
+    new import_obsidian.Setting(containerEl).setName("Backwards compatibility").setDesc("Support other vaults that use a plugin version older than 1.1.9.").setTooltip(
+      "When enabled, a hidden .vault-nickname file is saved in the vault's root. This allows other vaults that are using a version earlier than 1.1.9 to properly display this vault's nickname."
+    ).addToggle((toggleComponent) => {
+      toggleComponent.setValue(this.plugin.settings.enableBackwardsCompatibilty);
+      toggleComponent.onChange(async (newValue) => {
+        this.plugin.settings.enableBackwardsCompatibilty = newValue;
+        await this.plugin.saveSettings();
+        if (!newValue) {
+          const legacySettingsFilePath = this.plugin.getLegacySharedSettingsFilePath();
+          try {
+            this.plugin.app.vault.adapter.fs.unlinkSync(legacySettingsFilePath);
+          } catch (err) {
+            if (err.code !== "ENOENT") {
+              throw err;
+            }
+          }
+        }
+      });
+    });
   }
 };
 

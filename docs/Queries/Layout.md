@@ -12,6 +12,9 @@ together with the name of the element.
 > [!released]
 The `show` commands were introduced in Tasks 1.14.0.
 
+> [!tip]
+> See also [[Views]], for choosing between Column and List result views.
+
 <!-- NEW_QUERY_INSTRUCTION_EDIT_REQUIRED -->
 
 ## Task Elements
@@ -62,26 +65,73 @@ hide created date
 
 The following query elements exist:
 
-- `tree`
-- `edit button`
-- `postpone button`
-- `backlink`
-- `urgency`
-- `task count`
+| Element           | Default | Description                     | Details                                             |
+| ----------------- | ------- | ------------------------------- | --------------------------------------------------- |
+| `toolbar`         | Shown   | Copy and filter results         | [[#Toolbar]]                                        |
+| `tree`            | Hidden  | Task parent/child relationships | [[#Hide and Show Tree\|Tree]]                       |
+| `edit button`     | Shown   | Edit task button                | [[Create or edit Task]]                             |
+| `postpone button` | Shown   | Postpone button on dates        | [[Postponing]]                                      |
+| `backlink`        | Shown   | Task backlink for tasks         | [[Backlinks]]                                       |
+| `nested backlink` | Shown   | Backlink on nested tasks        | [[#Hide and Show Nested Backlink\|Nested Backlink]] |
+| `urgency`         | Hidden  | Task urgency score              | [[Urgency]]                                         |
+| `task count`      | Shown   | Total number of tasks           | [[#Task count location]]                            |
+| `group count`     | Hidden  | Number of tasks in leaf groups  | [[Grouping#Showing the number of tasks in a group\|Number of tasks in a group]] |
 
 > [!released]
 >
 > - `urgency` was introduced in Tasks 1.14.0.
 > - `tree` was introduced in Tasks 7.12.0.
+> - `toolbar` was introduced in Tasks 7.23.0.
+> - `nested backlink` was introduced in Tasks 8.3.0.
+> - `group count` was introduced in Tasks 8.4.0.
 
-All of these query elements except `urgency` and `tree` are shown by default, so you will use the command `hide`
-if you do not want to show any of them, or the command `show` to show the urgency score or tree view.
+All of these query elements except `group count`, `urgency` and `tree` are shown by default, so you will use the command `hide`
+if you do not want to show any of them, or the command `show` to show the group count, urgency score or tree view.
 
 For example:
 
 ```text
 hide task count
+show group count
 ```
+
+### Task count location
+
+By default, the task count is shown at the **bottom** of query results. You can change this to display at the **top** instead, via the Tasks plugin settings:
+
+1. Open **Settings → Tasks → Search results**.
+2. Set **Task count location** to **Top** or **Bottom**.
+
+This is a global setting that applies to all task queries. Individual queries can still use `hide task count` to hide the count entirely.
+
+> [!released]
+> The 'Task count location' setting was introduced in Tasks 7.24.0.
+
+### Toolbar
+
+The toolbar appears at the top of Tasks search results.
+
+![Image of the Toolbar at the top of Tasks search results](../images/search-results-toolbar.png)
+<span class="caption">Image of the Toolbar at the top of Tasks search results</span>
+
+It allows you to:
+
+- temporarily **filter results** by task description, without modifying the query
+  - the search is case-insensitive
+    - `hello world` will match `HELLO WORLD`
+  - word order matters
+    - `hello world` will not match `hello blue world`
+- **copy search results** in Markdown format, for export
+  - Copied elements:
+    - Errors
+    - Any [[Explaining Queries|explanation]]
+    - Group headings
+    - The found tasks, honouring `show tree`
+  - Elements not copied:
+    - The task count
+
+> [!released]
+> `show toolbar` and `hide toolbar` were introduced in Tasks 7.23.0.
 
 ### Hide and Show Tree
 
@@ -141,6 +191,39 @@ The `show tree` instruction enables us to see the parent/child relationships in 
   - Child tasks and list items are displayed in the order that they appear in the file. They are not affected by any `sort by` instructions.
 - For now, the **tree layout is turned off by default**, whilst we explore how it should interact with the filtering instructions.
   - We hope to make it the default behaviour in a future release.
+
+### Hide and Show Nested Backlink
+
+> [!released]
+> `hide nested backlink` was introduced in Tasks 8.3.0.
+
+When you use `show tree`, every nested task shows its own [[Backlinks|backlink]], which repeats the
+same filename and heading as its top-level parent task. This can add a lot of repeated text to the results.
+
+The `hide nested backlink` instruction removes that repetition by **hiding the backlink on nested tasks
+entirely**, whilst the **top-level tasks keep their full backlink**.
+
+````text
+```tasks
+not done
+filename includes Party Planner
+
+show tree
+hide nested backlink
+```
+````
+
+![Comparison of search results when using `show tree`. Left: nested backlinks shown. Right: nested backlinks hidden.](../images/search-results-hide-nested-backlink.png)
+<span class="caption">Comparison of search results when using `show tree`. **Left**: nested backlinks shown. **Right**: nested backlinks hidden.</span>
+
+> [!Note]
+> `hide nested backlink` only affects nested tasks, so it only has a visible effect together with `show tree`.
+> In the default flat layout there are no nested tasks, so the instruction does nothing.
+>
+> To hide backlinks on **all** tasks, including the top-level ones, use `hide backlink` instead.
+>
+> `hide backlink` takes precedence: when a query contains `hide backlink`, all backlinks are hidden,
+> and `show nested backlink` cannot re-show the backlinks on nested tasks.
 
 ## Example of show and hide
 
@@ -225,3 +308,19 @@ full mode
 For more information, see [[Query File Defaults]].
 
 And for even more power, see [[Make a query user interface]].
+
+## Support
+
+Before creating a new bug report or feature request about Layout, please check existing items to avoid duplicates.
+
+You do not need to search manually: the links below are already filtered to the label `"scope: show/hide"`.
+
+- Check both Open and Closed items.
+- If you find an existing item, support it there instead of adding a `+1` comment. See [[About Support and Help#How to support an existing request|How to support an existing request]].
+
+| Type | Open | Closed | Notes |
+| --- | --- | --- | --- |
+| Issues | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aopen%20label%3A%22scope%3A+show/hide%22%20is%3Aissue%20) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aclosed%20label%3A%22scope%3A+show/hide%22%20is%3Aissue%20) | bug reports and feature requests |
+| Discussions | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aopen+label%3A%22scope%3A+show/hide%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aclosed+label%3A%22scope%3A+show/hide%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | older feature discussions from before late 2022 |
+
+If you do not find an existing item in Issues or Discussions, see [[About Support and Help]] for how to report a bug or request a feature.

@@ -30,19 +30,21 @@ The ⏩ button provides two choices:
 1. **Click the button** to advance the date to the **earlier** of:
     - tomorrow
     - the day after its current date
-    ![Tooltip on the Postpone button shows tomorrow's date, for dates before or on today](../images/postpone-overdue-task-default-action.png)
-    <span class="caption">**Tooltip** on the Postpone button shows **tomorrow's date**, for dates **before or on today**.</span>
-    ![Tooltip on the Postpone button shows 'postpone by day', for future dates.](../images/postpone-future-task-default-action.png)
-    <span class="caption">**Tooltip** on the Postpone button shows '**postpone by day**', for **future dates**.</span>
+
+        ![Tooltip on the Postpone button shows tomorrow's date, for dates before or on today](../images/postpone-overdue-task-default-action.png)
+        <span class="caption">**Tooltip** on the Postpone button shows **tomorrow's date**, for dates **before or on today**.</span>
+        ![Tooltip on the Postpone button shows 'postpone by day', for future dates.](../images/postpone-future-task-default-action.png)
+        <span class="caption">**Tooltip** on the Postpone button shows '**postpone by day**', for **future dates**.</span>
 
 2. **Right-click** or **press-and-hold** the button to select from a context menu with:
     - future dates in the next 6 days
     - more future dates, further ahead
-    - an option to remove the date instead:
-    ![Context menu on the Postpone button shows options for dates before or on today](../images/postpone-overdue-task-context-menu.png)
-    <span class="caption">**Context menu** on the Postpone button shows options for dates **before or on today**</span>
-    ![Context menu on the Postpone button shows options for future dates.](../images/postpone-future-task-context-menu.png)
-    <span class="caption">**Context menu** on the Postpone button shows options for **future dates**.</span>
+    - an option to remove the date instead
+
+        ![Context menu on the Postpone button shows options for dates before or on today](../images/postpone-overdue-task-context-menu.png)
+        <span class="caption">**Context menu** on the Postpone button shows options for dates **before or on today**</span>
+        ![Context menu on the Postpone button shows options for future dates.](../images/postpone-future-task-context-menu.png)
+        <span class="caption">**Context menu** on the Postpone button shows options for **future dates**.</span>
 
 ### Which date field is edited?
 
@@ -87,3 +89,19 @@ One of these reasons:
 ### Can I use Postpone to add a date to an undated task?
 
 Currently, no.
+
+## Support
+
+Before creating a new bug report or feature request about Postponing, please check existing items to avoid duplicates.
+
+You do not need to search manually: the links below are already filtered to the label `"scope: postpone"`.
+
+- Check both Open and Closed items.
+- If you find an existing item, support it there instead of adding a `+1` comment. See [[About Support and Help#How to support an existing request|How to support an existing request]].
+
+| Type | Open | Closed | Notes |
+| --- | --- | --- | --- |
+| Issues | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aopen%20label%3A%22scope%3A+postpone%22%20is%3Aissue%20) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aclosed%20label%3A%22scope%3A+postpone%22%20is%3Aissue%20) | bug reports and feature requests |
+| Discussions | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aopen+label%3A%22scope%3A+postpone%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aclosed+label%3A%22scope%3A+postpone%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | older feature discussions from before late 2022 |
+
+If you do not find an existing item in Issues or Discussions, see [[About Support and Help]] for how to report a bug or request a feature.

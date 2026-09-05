@@ -1,6 +1,36 @@
-import type { CachedMetadata } from 'obsidian';
+import type { App, CachedMetadata, Debouncer, Reference, TFile, Vault } from 'obsidian';
+import type { SimulatedFile } from '../Obsidian/SimulatedFile';
+import { MockDataLoader } from '../TestingTools/MockDataLoader';
 
 export {};
+
+/**
+ * Since we don't use the app object's method or properties directly,
+ * and just treat it as an "opaque object" for markdown rendering, there is
+ * not a lot to mock in particular.
+ */
+export const mockApp = {} as unknown as App;
+
+/**
+ * Creates a minimal Obsidian TFile for tests that only need file metadata.
+ *
+ * @param path - Vault-relative path to the file.
+ */
+export function createTFile(path: string): TFile {
+    const name = path.split('/').pop() ?? path;
+    const extension = name.includes('.') ? name.split('.').pop() ?? '' : '';
+    const basename = extension === '' ? name : name.slice(0, -(extension.length + 1));
+
+    return {
+        vault: {} as Vault,
+        path,
+        name,
+        parent: null,
+        stat: { ctime: 0, mtime: 0, size: 0 },
+        basename,
+        extension,
+    };
+}
 
 export class MenuItem {
     public title: string | DocumentFragment = '';
@@ -124,24 +154,77 @@ function caseInsensitiveSubstringSearch(searchTerm: string, phrase: string): Sea
         : null;
 }
 
-let mockedFileData: any = {};
-
-export function setCurrentCacheFile(mockData: any) {
-    mockedFileData = mockData;
-}
-
+/**
+ * Fake implementation of Obsidian's `getAllTags()`.
+ *
+ * See https://docs.obsidian.md/Reference/TypeScript+API/getAllTags
+ *
+ * @param cachedMetadata - the CachedMetadata instance from a SimulatedFile that has
+ *                         already been loaded via MockDataLoader.get().
+ * @throws Error if no matching CachedMetadata is found in the MockDataLoader cache.
+ */
 export function getAllTags(cachedMetadata: CachedMetadata): string[] {
-    if (cachedMetadata !== mockedFileData.cachedMetadata) {
-        throw new Error('Inconsistent test data used in mock getAllTags()');
-    }
-    return mockedFileData.getAllTags;
+    const simulatedFile = MockDataLoader.findCachedMetaData(cachedMetadata);
+    return simulatedFile.getAllTags;
 }
 
+/**
+ * Fake implementation of Obsidian's `parseFrontMatterTags()`.
+ *
+ * See https://docs.obsidian.md/Reference/TypeScript+API/parseFrontMatterTags
+ *
+ * @example
+ * This works:
+ * ```typescript
+ *     const tags = parseFrontMatterTags(tasksFile.cachedMetadata.frontmatter);
+ * ```
+ *
+ * @example
+ * This does not work:
+ * ```typescript
+ *     const tags = parseFrontMatterTags(tasksFile.frontmatter);
+ * ```
+ *
+ * @param frontmatter - the raw CachedMetadata.frontmatter instance from a SimulatedFile that has
+ *                      already been loaded via MockDataLoader.get().
+ * @throws Error if no matching frontmatter is found in the MockDataLoader cache,
+ *               or a `tasksFile.frontmatter` was supplied.
+ */
 export function parseFrontMatterTags(frontmatter: any | null): string[] | null {
-    if (frontmatter !== mockedFileData.cachedMetadata.frontmatter) {
-        throw new Error('Inconsistent test data used in mock parseFrontMatterTags()');
+    const simulatedFile = MockDataLoader.findFrontmatter(frontmatter);
+    return simulatedFile.parseFrontMatterTags;
+}
+
+/**
+ * Fake implementation of calling Obsidian's `getLinkpath()` and `app.metadataCache.getFirstLinkpathDest()`
+ * This reads saved the {@link SimulatedFile} JSON files.
+ *
+ * See https://docs.obsidian.md/Reference/TypeScript+API/getLinkpath
+ * See https://docs.obsidian.md/Reference/TypeScript+API/MetadataCache/getFirstLinkpathDest
+ *
+ * @param rawLink
+ * @param sourcePath - the path to a Markdown file in the test vault whose SimulatedFile has already
+ *                     been loaded via MockDataLoader.get(). For example, 'Test Data/callout.md'
+ *
+ * @example
+ * ```typescript
+ *     beforeAll(() => {
+ *         LinkResolver.getInstance().setGetFirstLinkpathDestFn((rawLink: Reference, sourcePath: string) => {
+ *             return getFirstLinkpathDest(rawLink, sourcePath);
+ *         });
+ *     });
+ * ```
+ */
+export function getFirstLinkpathDest(rawLink: Reference, sourcePath: string): string | null {
+    const simulatedFile = MockDataLoader.findDataFromMarkdownPath(sourcePath);
+    return getFirstLinkpathDestFromData(simulatedFile, rawLink);
+}
+
+export function getFirstLinkpathDestFromData(data: SimulatedFile, rawLink: Reference) {
+    if (!(rawLink.link in data.resolveLinkToPath)) {
+        console.log(`Cannot find resolved path for ${rawLink.link} in ${data.filePath} in mock getFirstLinkpathDest()`);
     }
-    return mockedFileData.parseFrontMatterTags;
+    return data.resolveLinkToPath[rawLink.link];
 }
 
 /**
@@ -158,5 +241,86 @@ export function prepareSimpleSearch(query: string): (text: string) => SearchResu
     };
 }
 
+/**
+ * Fake implementation of Obsidian's prepareFuzzySearch(),
+ * so we can write tests of code that calls that function.
+ *
+ * TODO Augment this to return an actual SearchResult, with the matching character positions.
+ *
+ * See https://docs.obsidian.md/Reference/TypeScript+API/prepareFuzzySearch
+ * @param query - the search term
+ */
+export function prepareFuzzySearch(query: string) {
+    return function (text: string) {
+        const normalizedQuery = query.toLowerCase();
+        const normalizedText = text.toLowerCase();
+        const matches = [...normalizedQuery].every((character) => normalizedText.includes(character));
+        return matches ? { score: normalizedQuery.length / normalizedText.length } : null;
+    };
+}
+
 type IconName = string;
-export function setIcon(_parent: HTMLElement, _iconId: IconName): void {}
+
+export function setIcon(element: HTMLElement, iconId: IconName): void {
+    element.setAttribute('test-icon', iconId);
+}
+
+export function setTooltip(element: HTMLElement, text: string): void {
+    element.setAttribute('test-tooltip', text);
+}
+
+export function debounce<T extends unknown[], V>(
+    cb: (...args: [...T]) => V,
+    _timeout?: number,
+    _resetTimer?: boolean,
+): Debouncer<T, V> {
+    const debouncer = ((..._args: T) => debouncer) as Debouncer<T, V>;
+    debouncer.cancel = () => debouncer;
+    debouncer.run = () => {
+        return cb(...([] as any));
+    };
+    return debouncer;
+}
+
+export function getLanguage() {
+    return 'en';
+}
+
+/**
+ * A mock implementation of the Obsidian Modal class.
+ * Without this testing the TaskModal throws an error attempting to extend Modal
+ */
+export class Modal {
+    public open(): void {
+        // Mocked interface, no-op
+    }
+    public close(): void {
+        // Mocked interface, no-op
+    }
+    public onOpen(): void {}
+    public onClose(): void {}
+}
+
+export class Component {
+    public load(): void {}
+    public unload(): void {}
+}
+
+export class MarkdownRenderer {
+    public static render(_app: App, markdown: string, el: HTMLElement): Promise<void> {
+        el.textContent = markdown;
+        return Promise.resolve();
+    }
+}
+
+export abstract class SuggestModal<T> extends Modal {
+    constructor(public readonly app: App) {
+        super();
+    }
+
+    public setPlaceholder(_placeholder: string): void {}
+
+    public abstract getSuggestions(query: string): T[] | Promise<T[]>;
+    public abstract renderSuggestion(value: T, el: HTMLElement): void;
+    public abstract onChooseSuggestion(item: T, evt: MouseEvent | KeyboardEvent): void;
+}

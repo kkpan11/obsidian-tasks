@@ -6,6 +6,7 @@ body:
     attributes:
       value: |
         ## Before you start
+        Incomplete, vague, or poorly described bug reports will be closed.
         Please **make sure you are on the latest version of Tasks.**
         If you encountered the issue after you installed, updated, or reloaded the Tasks plugin, **please try restarting obsidian before reporting the bug**.
         Also, please make sure you **read and understand the [guide for good bug reports](https://publish.obsidian.md/tasks/Support+and+Help/Report+a+Bug)**.
@@ -17,6 +18,8 @@ body:
       description: "This repository is not about the Obsidian app!"
       options:
         - label: "My request is about the [Tasks plugin for Obsidian](https://publish.obsidian.md/tasks/Introduction)."
+          required: true
+        - label: "I have tested the bug with the [latest version](https://github.com/obsidian-tasks-group/obsidian-tasks/releases) of the Tasks plugin."
           required: true
 
   - type: checkboxes
@@ -80,6 +83,16 @@ body:
         - label: Linux
         - label: macOS
         - label: Windows
+    validations:
+      required: true
+
+  - type: input
+    id: os-versions
+    attributes:
+      label: Operating System Version(s)
+      description: Which operating system version(s) are you using?
+    validations:
+      required: true
 
   - type: input
     id: obsidian-version

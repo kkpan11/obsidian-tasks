@@ -3,6 +3,7 @@ import type { QueryLayoutOptions } from './Layout/QueryLayoutOptions';
 import type { Task } from './Task/Task';
 import type { Grouper } from './Query/Group/Grouper';
 import type { QueryResult } from './Query/QueryResult';
+import type { ViewLayoutOptions } from './Layout/ViewLayoutOptions';
 
 /**
  * Standard interface for the query engine used by Tasks, multiple
@@ -53,6 +54,11 @@ export interface IQuery {
     queryLayoutOptions: QueryLayoutOptions;
 
     /**
+     * The view mode for displayed results, such as List or Columns/Kanban.
+     */
+    viewLayoutOptions: ViewLayoutOptions;
+
+    /**
      * Main method for executing the query. This will be called by the
      * code block processor registered in Obsidian. It takes the Task collection
      * from the cache and returns a TaskGroup collection. If there is no grouping
@@ -84,7 +90,7 @@ export interface IQuery {
      * @param message
      * @param objects
      */
-    debug(message: string, objects?: any): void;
+    debug(message: string, objects?: unknown): void;
 
     /**
      * Write a warn log message.
@@ -94,5 +100,5 @@ export interface IQuery {
      * @param message
      * @param objects
      */
-    warn(message: string, objects?: any): void;
+    warn(message: string, objects?: unknown): void;
 }

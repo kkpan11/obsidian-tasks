@@ -1,5 +1,4 @@
 import {
-    type CachedMetadata,
     type EventRef,
     type HeadingCache,
     type ListItemCache,
@@ -17,8 +16,12 @@ import { DateFallback } from '../DateTime/DateFallback';
 import { getSettings } from '../Config/Settings';
 import { Lazy } from '../lib/Lazy';
 import { Logger, logging } from '../lib/logging';
+import { PerformanceTracker } from '../lib/PerformanceTracker';
+import { GlobalFilter } from '../Config/GlobalFilter';
 import type { TasksEvents } from './TasksEvents';
 import { FileParser } from './FileParser';
+
+const MAX_CONCURRENT_FILE_READS = 4;
 
 export enum State {
     Cold = 'Cold',
@@ -31,9 +34,11 @@ export class Cache {
 
     private readonly metadataCache: MetadataCache;
     private readonly metadataCacheEventReferences: EventRef[];
+
     private readonly vault: Vault;
     private readonly workspace: Workspace;
     private readonly vaultEventReferences: EventRef[];
+
     private readonly events: TasksEvents;
     private readonly eventsEventReferences: EventRef[];
 
@@ -72,9 +77,11 @@ export class Cache {
 
         this.metadataCache = metadataCache;
         this.metadataCacheEventReferences = [];
+
         this.vault = vault;
         this.workspace = workspace;
         this.vaultEventReferences = [];
+
         this.events = events;
         this.eventsEventReferences = [];
 
@@ -91,9 +98,9 @@ export class Cache {
         // Subscribe to vault and load cache later when workspace is ready,
         // prevents create events for every file, but loadVault cover all files anyway.
         // For details see: https://docs.obsidian.md/Reference/TypeScript+API/Vault/on('create')
-        this.workspace.onLayoutReady(() => {
+        this.workspace.onLayoutReady(async () => {
             this.subscribeToVault();
-            this.loadVault();
+            await this.loadVault();
         });
 
         this.subscribeToEvents();
@@ -143,16 +150,19 @@ export class Cache {
             // We only want to initialize if we haven't already.
             if (!this.loadedAfterFirstResolve) {
                 this.loadedAfterFirstResolve = true;
-                this.loadVault();
+                // eslint revealed a possibly missing await here.
+                // But in testing, we found that commenting out this line prevented the usual double-reading
+                // of all files in the vault during start-up.
+                // For now, we are marking the promise as void, in order to be able to leave
+                // @typescript-eslint/no-floating-promises turned on, to catch future promise errors.
+                void this.loadVault();
             }
         });
         this.metadataCacheEventReferences.push(resolvedEventeReference);
 
         // Does not fire when starting up obsidian and only works for changes.
-        const changedEventReference = this.metadataCache.on('changed', (file: TFile) => {
-            this.tasksMutex.runExclusive(() => {
-                this.indexFile(file);
-            });
+        const changedEventReference = this.metadataCache.on('changed', async (file: TFile) => {
+            await this.tasksMutex.runExclusive(() => this.indexFile(file));
         });
         this.metadataCacheEventReferences.push(changedEventReference);
     }
@@ -161,25 +171,23 @@ export class Cache {
         this.logger.debug('Cache.subscribeToVault()');
         const { useFilenameAsScheduledDate } = getSettings();
 
-        const createdEventReference = this.vault.on('create', (file: TAbstractFile) => {
+        const createdEventReference = this.vault.on('create', async (file: TAbstractFile) => {
             if (!(file instanceof TFile)) {
                 return;
             }
             this.logger.debug(`Cache.subscribeToVault.createdEventReference() ${file.path}`);
 
-            this.tasksMutex.runExclusive(() => {
-                this.indexFile(file);
-            });
+            await this.tasksMutex.runExclusive(() => this.indexFile(file));
         });
         this.vaultEventReferences.push(createdEventReference);
 
-        const deletedEventReference = this.vault.on('delete', (file: TAbstractFile) => {
+        const deletedEventReference = this.vault.on('delete', async (file: TAbstractFile) => {
             if (!(file instanceof TFile)) {
                 return;
             }
             this.logger.debug(`Cache.subscribeToVault.deletedEventReference() ${file.path}`);
 
-            this.tasksMutex.runExclusive(() => {
+            await this.tasksMutex.runExclusive(() => {
                 this.tasks = this.tasks.filter((task: Task) => {
                     return task.path !== file.path;
                 });
@@ -189,13 +197,13 @@ export class Cache {
         });
         this.vaultEventReferences.push(deletedEventReference);
 
-        const renamedEventReference = this.vault.on('rename', (file: TAbstractFile, oldPath: string) => {
+        const renamedEventReference = this.vault.on('rename', async (file: TAbstractFile, oldPath: string) => {
             if (!(file instanceof TFile)) {
                 return;
             }
             this.logger.debug(`Cache.subscribeToVault.renamedEventReference() ${file.path}`);
 
-            this.tasksMutex.runExclusive(() => {
+            await this.tasksMutex.runExclusive(() => {
                 const fileCache = this.metadataCache.getFileCache(file);
                 // TODO What if the file has been renamed but the cache not yet updated?
                 const tasksFile = new TasksFile(file.path, fileCache ?? undefined);
@@ -227,29 +235,54 @@ export class Cache {
             handler({ tasks: this.tasks, state: this.state });
         });
         this.eventsEventReferences.push(requestReference);
+
+        // The caller is responsible for debouncing this:
+        const reloadVaultReference = this.events.onReloadVault(async () => await this.loadVault());
+        this.eventsEventReferences.push(reloadVaultReference);
     }
 
     private loadVault(): Promise<void> {
         this.logger.debug('Cache.loadVault()');
         return this.tasksMutex.runExclusive(async () => {
+            const measureLoad = new PerformanceTracker(
+                `Loading vault with global filter '${GlobalFilter.getInstance().get()}'`,
+            );
+            measureLoad.start();
+
             this.state = State.Initializing;
             this.logger.debug('Cache.loadVault(): state = Initializing');
 
-            await Promise.all(
-                this.vault.getMarkdownFiles().map((file: TFile) => {
-                    return this.indexFile(file);
-                }),
-            );
+            await this.indexFiles(this.vault.getMarkdownFiles());
             this.state = State.Warm;
             // TODO Why is this displayed twice:
             this.logger.debug('Cache.loadVault(): state = Warm');
+
+            // Report that we have finished loading before notifying subscribers,
+            // so we don't double-count things like redrawing search results.
+            // These have their own timer code.
+            measureLoad.finish();
 
             // Notify that the cache is now warm:
             this.notifySubscribers();
         });
     }
 
-    private async indexFile(file: TFile): Promise<void> {
+    private async indexFiles(files: TFile[]): Promise<void> {
+        let nextFileIndex = 0;
+        const indexNextFile = async () => {
+            while (nextFileIndex < files.length) {
+                const file = files[nextFileIndex];
+                nextFileIndex++;
+                // loadVault() notifies subscribers once, after every worker finishes and the cache is warm.
+                await this.indexFile(file, false);
+            }
+        };
+
+        const workerCount = Math.min(MAX_CONCURRENT_FILE_READS, files.length);
+        await Promise.all(Array.from({ length: workerCount }, () => indexNextFile()));
+    }
+
+    private async indexFile(file: TFile, notifyOnChange = true): Promise<void> {
         const fileCache = this.metadataCache.getFileCache(file);
         if (fileCache === null || fileCache === undefined) {
             return;
@@ -271,14 +304,25 @@ export class Cache {
         // Still continue to notify watchers of removal.
 
         let newTasks: Task[] = [];
-        if (listItems !== undefined) {
-            // Only read the file and process for tasks if there are list items.
-            const fileContent = await this.vault.cachedRead(file);
+        const hasTaskListItem = listItems?.some((listItem) => listItem.task !== undefined) ?? false;
+        if (listItems !== undefined && hasTaskListItem) {
+            // Only read the file and process for tasks if there are task list items.
+            let fileContent: string;
+            try {
+                fileContent = await this.vault.cachedRead(file);
+            } catch (error) {
+                // A failed read is not evidence that the tasks were deleted. Keep the last successfully read tasks;
+                // task edits read and validate the current file contents before writing any changes.
+                this.logger.error(
+                    `Cache.indexFile: unable to read ${file.path}; keeping its previously cached tasks`,
+                    error,
+                );
+                return;
+            }
             newTasks = this.getTasksFromFileContent(
+                new TasksFile(file.path, fileCache),
                 fileContent,
                 listItems,
-                fileCache,
-                file.path,
                 this.reportTaskParsingErrorToUser,
                 this.logger,
             );
@@ -314,26 +358,33 @@ export class Cache {
         this.tasks.push(...newTasks);
         this.logger.debug('Cache.indexFile: ' + file.path + `: read ${newTasks.length} task(s)`);
 
-        // All updated, inform our subscribers.
-        this.notifySubscribers();
+        if (notifyOnChange) {
+            // All updated, inform our subscribers.
+            this.notifySubscribers();
+        }
     }
 
     private getTasksFromFileContent(
+        tasksFile: TasksFile,
         fileContent: string,
         listItems: ListItemCache[],
-        fileCache: CachedMetadata,
-        filePath: string,
-        errorReporter: (e: any, filePath: string, listItem: ListItemCache, line: string) => void,
+        errorReporter: (e: unknown, filePath: string, listItem: ListItemCache, line: string) => void,
         logger: Logger,
     ): Task[] {
-        const fileParser = new FileParser(filePath, fileContent, listItems, logger, fileCache, errorReporter);
+        const fileParser = new FileParser(tasksFile, fileContent, listItems, logger, errorReporter);
         return fileParser.parseFileContent();
     }
 
-    private reportTaskParsingErrorToUser(e: any, filePath: string, listItem: ListItemCache, line: string) {
+    private readonly reportTaskParsingErrorToUser = (
+        e: unknown,
+        filePath: string,
+        listItem: ListItemCache,
+        line: string,
+    ) => {
+        const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
         const msg = `There was an error reading one of the tasks in this vault.
 The following task has been ignored, to prevent Tasks queries getting stuck with 'Loading Tasks ...'
-Error: ${e}
+Error: ${errorMessage}
 File: ${filePath}
 Line number: ${listItem.position.start.line}
 Task line: ${line}
@@ -357,7 +408,7 @@ session.
         if (this.state === State.Initializing) {
             new Notice(msg, 10000);
         }
-    }
+    };
 
     public static getSection(lineNumberTask: number, sections: SectionCache[] | undefined): SectionCache | null {
         if (sections === undefined) {

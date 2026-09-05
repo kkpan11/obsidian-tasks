@@ -86,7 +86,7 @@ sort by function !task.isDone
 ```
 
 - `sort by function` sorts `true` before `false`
-- Hence, we use `!` to negate `task.isDone`, so tasks with [[Status Types|Status Type]] `TODO` and `IN_PROGRESS` tasks are sorted **before** `DONE`, `CANCELLED` and `NON_TASK`.
+- Hence, we use `!` to negate `task.isDone`, so tasks with [[Status Types|Status Type]] `TODO`, `IN_PROGRESS` and `ON_HOLD` tasks are sorted **before** `DONE`, `CANCELLED` and `NON_TASK`.
 
 <!-- placeholder to force blank line after included text --><!-- endInclude -->
 
@@ -111,7 +111,15 @@ sort by function task.status.name
 
 ### Status Type
 
-- `sort by status.type` (Sorted in the order `IN_PROGRESS`, `TODO`, `DONE`, `CANCELLED` then `NON_TASK`)
+- `sort by status.type`
+  - This sorts tasks by the [[Status Types|types]] you have given to your custom statuses.
+  - Tasks are sorted in this order:
+    - `IN_PROGRESS`
+    - `TODO`
+    - `ON_HOLD`
+    - `DONE`
+    - `CANCELLED`
+    - `NON_TASK`
 
 > [!released]
 `sort by status.type` was introduced in Tasks 1.23.0.
@@ -696,6 +704,24 @@ If given, the sort order will be reverse for that property.
 
 Note that `reverse` will reverse the entire result set.
 For example, when you `sort by done reverse` and your query results contain tasks that do not have a done date, then those tasks without a done date will be listed first.
+
+Refer to [[Grouping#Reversing groups]] to specify the sort order of groups when using the `GROUP BY` clause.
+
+## Support
+
+Before creating a new bug report or feature request about Sorting, please check existing items to avoid duplicates.
+
+You do not need to search manually: the links below are already filtered to the label `"scope: sorting"`.
+
+- Check both Open and Closed items.
+- If you find an existing item, support it there instead of adding a `+1` comment. See [[About Support and Help#How to support an existing request|How to support an existing request]].
+
+| Type | Open | Closed | Notes |
+| --- | --- | --- | --- |
+| Issues | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aopen%20label%3A%22scope%3A+sorting%22%20is%3Aissue%20) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aclosed%20label%3A%22scope%3A+sorting%22%20is%3Aissue%20) | bug reports and feature requests |
+| Discussions | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aopen+label%3A%22scope%3A+sorting%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aclosed+label%3A%22scope%3A+sorting%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | older feature discussions from before late 2022 |
+
+If you do not find an existing item in Issues or Discussions, see [[About Support and Help]] for how to report a bug or request a feature.
 
 ## Examples
 

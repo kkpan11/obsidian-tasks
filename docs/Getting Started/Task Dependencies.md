@@ -209,8 +209,8 @@ When using those dependencies in searches, we define two more relationships: `bl
 
 A task is `blocking` if:
 
-- It is `TODO` or `IN_PROGRESS`.
-- And any of the tasks that **directly depend on it** are also `TODO` or `IN_PROGRESS`.
+- It is `TODO`, `IN_PROGRESS` or `ON_HOLD`.
+- And any of the tasks that **directly depend on it** are also `TODO`, `IN_PROGRESS` or `ON_HOLD`.
 
 Note that:
 
@@ -237,8 +237,8 @@ is blocking
 
 A task is `blocked` if:
 
-- It is `TODO` or `IN_PROGRESS`.
-- And any of the tasks **it directly depends on** are also `TODO` or `IN_PROGRESS`.
+- It is `TODO`, `IN_PROGRESS` or `ON_HOLD`.
+- And any of the tasks **it directly depends on** are also `TODO`, `IN_PROGRESS` or `ON_HOLD`.
 
 Note that:
 
@@ -267,7 +267,7 @@ is not blocked
 ### Demonstration of blocking and blocked
 
 > [!Example] Blocking occurs
-> If *both* ends of a `dependsOn` link are `TODO` or `IN_PROGRESS`, blocking occurs:
+> If *both* ends of a `dependsOn` link are `TODO`, `IN_PROGRESS` or `ON_HOLD`, blocking occurs:
 >
 > ```mermaid
 > flowchart BT
@@ -380,3 +380,19 @@ Dependencies and recurring tasks:
 
 - When [[recurring tasks]] are completed, the next recurrence will intentionally have any `id` and `dependsOn` values removed.
   - See [[Recurring Tasks#Next recurrence has any dependency fields removed|Next recurrence has any dependency fields removed]]
+
+## Support
+
+Before creating a new bug report or feature request about Task Dependencies, please check existing items to avoid duplicates.
+
+You do not need to search manually: the links below are already filtered to the label `"scope: task dependencies"`.
+
+- Check both Open and Closed items.
+- If you find an existing item, support it there instead of adding a `+1` comment. See [[About Support and Help#How to support an existing request|How to support an existing request]].
+
+| Type | Open | Closed | Notes |
+| --- | --- | --- | --- |
+| Issues | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aopen%20label%3A%22scope%3A+task+dependencies%22%20is%3Aissue%20) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aclosed%20label%3A%22scope%3A+task+dependencies%22%20is%3Aissue%20) | bug reports and feature requests |
+| Discussions | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aopen+label%3A%22scope%3A+task+dependencies%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aclosed+label%3A%22scope%3A+task+dependencies%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | older feature discussions from before late 2022 |
+
+If you do not find an existing item in Issues or Discussions, see [[About Support and Help]] for how to report a bug or request a feature.

@@ -10,12 +10,73 @@ See also [[Breaking Changes]]: Tasks releases with version numbers ending `.0.0`
 
 _In recent [Tasks releases](https://github.com/obsidian-tasks-group/obsidian-tasks/releases)..._
 
-## 7.x releases
+## 8.x releases
 
 - X.Y.Z:
+  - **Documentation**
+    - Add [[How to read the user guide off-line]].
+- 8.4.0:
+  - Add [[Quick search]] command, to find an incomplete task recognised by Tasks anywhere in your vault.
+  - Add [[Views|columns view]], supporting **drag-and-drop edit** for a growing number of properties.
+  - Add [[Grouping#Showing the number of tasks in a group|show group count]] instruction. For now, this only shows numbers of tasks in the lowest-level groups, and is turned off by default.
+  - Add CSS example for [[Styling#Priority as a Background Color, for active tasks|colouring actionable tasks by their priority]].
+  - The [[Presets#Default Presets|default preset]] `hide_query_elements` now hides the task count. (Pre-existing Tasks settings are not updated, though.)
+  - **Translations** of [[Settings]], [[Editing a Status]] and [[Check your Statuses]]:
+    - Add **Spanish** translation.
+    - Add **French** translation.
+  - **Documentation:**
+    - Add [[About Support and Help#How to support an existing request|How to support an existing request]] to the help on user support.
+    - Add **Support** sections to many documentation pages, to help find and up-vote related bugs and feature requests before reporting new ones. Example: [[Statuses#Support]]
+- 8.3.0:
+  - Add [[Layout#Hide and Show Nested Backlink|'hide nested backlink']] instruction, for when '`show tree`' makes the output just too cluttered.
+  - [[Notifications]] page updated to better match the current behaviour of the [Reminder](https://community.obsidian.md/plugins/obsidian-reminder-plugin) plugin.
+  - [[Regular Expressions|Regular expression]] searches have been made safer:
+    - New maximum length for regex search strings: 500 characters.
+    - Prevent malicious searches freezing Obsidian by [Catastrophic Backtracking](https://www.regular-expressions.info/catastrophic.html).
+  - For contributors:
+    - Updated [Set up WebStorm for translation work](https://publish.obsidian.md/tasks-contributing/Translation/Set+up+WebStorm+for+translation+work).
+- 8.1.0:
+  - Add Turkish translation of [[Settings]], [[Editing a Status]] and [[Check your Statuses]].
+- 8.0.0:
+  - **Breaking change**:
+    - JavaScript in Tasks queries is now disabled by default.
+    - This affects `filter by function`, `sort by function`, `group by function` and any use of undocumented JavaScript expressions inside `{{...}}` placeholders.
+    - See [[JavaScript in Tasks Queries]] before deciding whether to enable it.
+
+## 7.x releases
+
+- 7.24.0:
+  - Add [[Toggling and Editing Statuses#'Tasks Change status to...' commands|'Change status to...' commands]].
+  - Add [[Layout#Task count location|Task count location]] setting, to move task count to the top of the results.
+  - Add `task.listMarker`. See [[Filters#List Marker|List Marker filters]].
+  - Add Brazilian Portuguese translation of [[Settings]], [[Editing a Status]] and [[Check your Statuses]].
+  - Add [Integration Tests](https://publish.obsidian.md/tasks-contributing/Testing/Integration+Tests) section to the [Contributing Guide](https://publish.obsidian.md/tasks-contributing/Welcome).
+- 7.23.0:
+  - Changes to most of the Tasks [[settings]] now take immediate effect. A few remaining settings are now marked with `REQUIRES RESTART`.
+  - Add [[Status Types#ON_HOLD|ON_HOLD]] status type.
+  - Add [[Layout#Toolbar|toolbar]]  on Tasks search results, with 'Filter by description' box and 'Copy results' button.
+    - The [[Presets#Default Presets|default preset]] `hide_query_elements` now hides the toolbar. (Pre-existing Tasks settings are not updated, though.)
+  - Add [[Create or edit Task#Customising the Modal|hide fields]] facility to the 'Create or edit Task' modal, for unused fields.
+  - Add Vietnamese translation of [[Settings]], [[Editing a Status]] and [[Check your Statuses]].
+  - Update the [pull request](https://publish.obsidian.md/tasks-contributing/Contributing/Updating+code) guidelines, because of the growth in AI-generated contributions.
+- 7.22.0:
+  - Fix [[Recurring Tasks#Priority of Dates|priority of dates in recurring tasks]] when using [[Recurring Tasks#Remove scheduled date on recurrence|Remove scheduled date on recurrence]].
+  - Update the [[Obsidian Properties#How does Tasks interpret Obsidian Properties?|table of examples]] to show how to use properties with nested data and object serialisation.
+  - Add Korean translation of [[Settings]], [[Editing a Status]] and [[Check your Statuses]].
+- 7.21.0:
+  - Add support for [[Links]] in custom filters, sorting and grouping.
+  - The Tasks API can now edit existing task lines with [[Tasks Api#`editTaskLineModal(taskLine string) Promise<string>;`|editTaskLineModal()]].
+  - Documentation: New section: [[Auto-Suggest#Managing Auto-Suggest Conflicts With Other Plugins|Managing Auto-Suggest conflicts with other plugins]].
+- 7.20.0:
+  - Add [[Presets]] feature to save commonly used task query instructions.
+  - Document [[Missing tags, aliases and cssclasses in some Obsidian 1.9.x versions]] - for Insider users of Obsidian 1.9.x.
+  - [[Line Continuations]] can now be used in the [[Query File Defaults]] property `TQ_extra_instructions`.
   - [[Check your Statuses]] report now contains samples of each status, and a convenient search to test them.
+  - Add German translation of [[Settings]], [[Editing a Status]] and [[Check your Statuses]].
 - 7.19.0:
   - New setting to [[Recurring Tasks#Remove scheduled date on recurrence|remove scheduled date on recurrence]].
+- 7.17.0:
+  - Add Belarusian, Russian, and Ukrainian translations of [[Settings]], [[Editing a Status]] and [[Check your Statuses]].
 - 7.16.0:
   - Add `task.lineNumber`.
     - This enables `sort by function task.lineNumber` to override the [[Sorting#Default sort order|default sort order]].

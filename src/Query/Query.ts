@@ -2,19 +2,21 @@ import { getSettings } from '../Config/Settings';
 import type { IQuery } from '../IQuery';
 import { QueryLayoutOptions, parseQueryShowHideOptions } from '../Layout/QueryLayoutOptions';
 import { TaskLayoutOptions, parseTaskShowHideOptions } from '../Layout/TaskLayoutOptions';
+import { ViewLayoutOptions, parseQueryViewMode } from '../Layout/ViewLayoutOptions';
 import { errorMessageForException } from '../lib/ExceptionTools';
 import { logging } from '../lib/logging';
 import { expandPlaceholders } from '../Scripting/ExpandPlaceholders';
 import { makeQueryContext } from '../Scripting/QueryContext';
 import type { Task } from '../Task/Task';
 import type { OptionalTasksFile } from '../Scripting/TasksFile';
+import { unknownPresetErrorMessage } from './Presets/Presets';
 import { Explainer } from './Explain/Explainer';
 import type { Filter } from './Filter/Filter';
 import * as FilterParser from './FilterParser';
 import type { Grouper } from './Group/Grouper';
 import { TaskGroups } from './Group/TaskGroups';
 import { QueryResult } from './QueryResult';
-import { continueLines } from './Scanner';
+import { continueLines, splitSourceHonouringLineContinuations } from './Scanner';
 import { SearchInfo } from './SearchInfo';
 import { Sort } from './Sort/Sort';
 import type { Sorter } from './Sort/Sorter';
@@ -37,6 +39,7 @@ export class Query implements IQuery {
 
     private readonly _taskLayoutOptions: TaskLayoutOptions = new TaskLayoutOptions();
     private readonly _queryLayoutOptions: QueryLayoutOptions = new QueryLayoutOptions();
+    private readonly _viewLayoutOptions: ViewLayoutOptions = new ViewLayoutOptions();
     public readonly layoutStatements: Statement[] = [];
 
     private readonly _filters: Filter[] = [];
@@ -45,6 +48,7 @@ export class Query implements IQuery {
     private readonly _grouping: Grouper[] = [];
     private _ignoreGlobalQuery: boolean = false;
 
+    private readonly viewModeRegexp = /^view +(.*)/i;
     private readonly hideOptionsRegexp = /^(hide|show) +(.*)/i;
     private readonly shortModeRegexp = /^short/i;
     private readonly fullModeRegexp = /^full/i;
@@ -58,7 +62,7 @@ export class Query implements IQuery {
     private readonly limitRegexp = /^limit (groups )?(to )?(\d+)( tasks?)?/i;
 
     private readonly commentRegexp = /^#.*/;
-    private readonly includeRegexp = /^include +(.*)/i;
+    private readonly presetRegexp = /^preset +(.*)/i;
 
     constructor(source: string, tasksFile: OptionalTasksFile = undefined) {
         this._queryId = this.generateQueryId(10);
@@ -118,8 +122,8 @@ export class Query implements IQuery {
     private parseLine(statement: Statement) {
         const line = statement.anyPlaceholdersExpanded;
         switch (true) {
-            case this.includeRegexp.test(line):
-                this.parseInclude(line, statement);
+            case this.presetRegexp.test(line):
+                this.parsePreset(line, statement);
                 break;
             case this.shortModeRegexp.test(line):
                 this._queryLayoutOptions.shortMode = true;
@@ -142,6 +146,9 @@ export class Query implements IQuery {
             case this.parseSortBy(line, statement):
                 break;
             case this.parseGroupBy(line, statement):
+                break;
+            case this.viewModeRegexp.test(line):
+                this.parseViewMode(statement);
                 break;
             case this.hideOptionsRegexp.test(line):
                 this.parseHideOptions(statement);
@@ -176,13 +183,35 @@ ${source}`;
             }
         }
 
-        // TODO Do not complain about any placeholder errors in comment lines
+        const isAComment = this.commentRegexp.test(source);
+        if (isAComment) {
+            // If it's a comment, we return the line un-changed, to avoid:
+            // 1. pointless error messages for any harmless unknown placeholders,
+            // 2. accidentally processing the second-and-subsequent lines of multi-line placeholders.
+            return [statement];
+        }
+
         // TODO Give user error info if they try and put a string in a regex search
         let expandedSource: string = source;
         if (tasksFile) {
             const queryContext = makeQueryContext(tasksFile);
+            let previousExpandedSource: string = '';
             try {
-                expandedSource = expandPlaceholders(source, queryContext);
+                // Keep expanding placeholders until no more changes occur or max iterations reached.
+                const maxIterations = 10; // Prevent infinite loops if there are any circular references.
+                let iterations = 0;
+
+                while (expandedSource !== previousExpandedSource && iterations < maxIterations) {
+                    previousExpandedSource = expandedSource;
+                    expandedSource = expandPlaceholders(previousExpandedSource, queryContext);
+                    iterations++;
+                }
+
+                if (expandedSource !== source) {
+                    expandedSource = continueLines(expandedSource)
+                        .map((statement) => statement.anyContinuationLinesRemoved)
+                        .join('\n');
+                }
             } catch (error) {
                 if (error instanceof Error) {
                     this._error = error.message;
@@ -270,6 +299,10 @@ ${source}`;
         return this._taskLayoutOptions;
     }
 
+    get viewLayoutOptions(): ViewLayoutOptions {
+        return this._viewLayoutOptions;
+    }
+
     public get queryLayoutOptions(): QueryLayoutOptions {
         return this._queryLayoutOptions;
     }
@@ -343,13 +376,18 @@ ${statement.explainStatement('    ')}
             const tasksSorted = debugSettings.ignoreSortInstructions ? tasks : Sort.by(this.sorting, tasks, searchInfo);
             const tasksSortedLimited = tasksSorted.slice(0, this.limit);
 
-            const taskGroups = new TaskGroups(this.grouping, tasksSortedLimited, searchInfo);
+            // If we are in the 'columns' view, use its grouper as our first grouper
+            // so that rendering can later display each top-level group in its own column.
+            const useColumnsGrouper =
+                this.viewLayoutOptions.viewMode === 'columns' && this.viewLayoutOptions.grouper !== null;
+            const groupers = useColumnsGrouper ? [this.viewLayoutOptions.grouper!, ...this.grouping] : this.grouping;
+            const taskGroups = new TaskGroups(groupers, tasksSortedLimited, searchInfo);
 
             if (this._taskGroupLimit !== undefined) {
                 taskGroups.applyTaskLimit(this._taskGroupLimit);
             }
 
-            return new QueryResult(taskGroups, tasksSorted.length);
+            return new QueryResult(taskGroups, tasksSorted.length, this.tasksFile);
         } catch (e) {
             const description = 'Search failed';
             let message = errorMessageForException(description, e);
@@ -359,6 +397,23 @@ ${statement.explainStatement('    ')}
             }
             return QueryResult.fromError(message);
         }
+    }
+
+    private parseViewMode(statement: Statement): void {
+        const line = statement.anyPlaceholdersExpanded;
+        const viewModeMatch = line.match(this.viewModeRegexp);
+        if (viewModeMatch === null) {
+            return;
+        }
+
+        const result = parseQueryViewMode(this._viewLayoutOptions, viewModeMatch[1].trim());
+
+        if (result.success) {
+            this.saveLayoutStatement(statement);
+            return;
+        }
+
+        this.setError(result.error, statement);
     }
 
     private parseHideOptions(statement: Statement): void {
@@ -420,7 +475,15 @@ ${statement.explainStatement('    ')}
     }
 
     private parseSortBy(line: string, statement: Statement): boolean {
-        const sortingMaybe = FilterParser.parseSorter(line);
+        let sortingMaybe: Sorter | null = null;
+        try {
+            sortingMaybe = FilterParser.parseSorter(line);
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Unknown error';
+            this.setError(message, statement);
+            return true;
+        }
+
         if (sortingMaybe) {
             sortingMaybe.setStatement(statement);
             this._sorting.push(sortingMaybe);
@@ -428,7 +491,6 @@ ${statement.explainStatement('    ')}
         }
         return false;
     }
-
     /**
      * Parsing of `group by` lines, for grouping that is implemented in the {@link Field}
      * classes.
@@ -438,7 +500,15 @@ ${statement.explainStatement('    ')}
      * @private
      */
     private parseGroupBy(line: string, statement: Statement): boolean {
-        const groupingMaybe = FilterParser.parseGrouper(line);
+        let groupingMaybe: Grouper | null;
+        try {
+            groupingMaybe = FilterParser.parseGrouper(line);
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Unknown error';
+            this.setError(message, statement);
+            return true;
+        }
+
         if (groupingMaybe) {
             groupingMaybe.setStatement(statement);
             this._grouping.push(groupingMaybe);
@@ -447,21 +517,32 @@ ${statement.explainStatement('    ')}
         return false;
     }
 
-    private parseInclude(_line: string, _statement: Statement) {
-        const include = this.includeRegexp.exec(_line);
-        if (include) {
-            const includeName = include[1].trim();
-            const includeValue = getSettings().includes[includeName];
-            if (!includeValue) {
-                this.setError(`Cannot find include "${includeName}" in the Tasks settings`, _statement);
+    private parsePreset(line: string, statement: Statement) {
+        const preset = this.presetRegexp.exec(line);
+        if (preset) {
+            const presetName = preset[1].trim();
+            const { presets } = getSettings();
+            const presetValue = presets[presetName];
+            if (!presetValue) {
+                this.setError(unknownPresetErrorMessage(presetName, presets), statement);
                 return;
             }
 
-            includeValue.split('\n').forEach((instruction) => {
-                const statement = new Statement(_statement.rawInstruction, _statement.anyContinuationLinesRemoved);
-                statement.recordExpandedPlaceholders(instruction);
-                this.parseLine(statement);
-            });
+            // Process the preset text with placeholder expansion
+            const instructions = splitSourceHonouringLineContinuations(presetValue);
+            for (const instruction of instructions) {
+                const newStatement = new Statement(statement.rawInstruction, statement.anyContinuationLinesRemoved);
+                newStatement.recordExpandedPlaceholders(instruction);
+
+                // Apply placeholder expansion again if needed
+                if (instruction.includes('{{') && instruction.includes('}}') && this.tasksFile) {
+                    const queryContext = makeQueryContext(this.tasksFile);
+                    const expandedInstruction = expandPlaceholders(instruction, queryContext);
+                    newStatement.recordExpandedPlaceholders(expandedInstruction);
+                }
+
+                this.parseLine(newStatement);
+            }
         }
     }
 
@@ -477,11 +558,11 @@ ${statement.explainStatement('    ')}
         return queryInstanceCounter.toString().padStart(length, '0');
     }
 
-    public debug(message: string, objects?: any): void {
+    public debug(message: string, objects?: unknown): void {
         this.logger.debugWithId(this._queryId, `"${this.filePath}": ${message}`, objects);
     }
 
-    public warn(message: string, objects?: any): void {
+    public warn(message: string, objects?: unknown): void {
         this.logger.warnWithId(this._queryId, `"${this.filePath}": ${message}`, objects);
     }
 }

@@ -8,6 +8,8 @@ import type { SearchInfo } from '../SearchInfo';
 import { Sorter } from '../Sort/Sorter';
 import { compareByDate } from '../../DateTime/DateTools';
 import { getValueType } from '../../lib/TypeDetection';
+import { EnableJsInTasksQueries } from '../../Config/EnableJsInTasksQueries';
+import { JsInTasksQueriesDisabledError } from '../../Scripting/JsInTasksQueriesDisabledError';
 import { Field } from './Field';
 import { Filter, type FilterFunction } from './Filter';
 import { FilterOrErrorMessage } from './FilterOrErrorMessage';
@@ -23,6 +25,10 @@ export class FunctionField extends Field {
     // -----------------------------------------------------------------------------------------------------------------
 
     createFilterOrErrorMessage(line: string): FilterOrErrorMessage {
+        if (!EnableJsInTasksQueries.getInstance().get()) {
+            return FilterOrErrorMessage.fromError(line, JsInTasksQueriesDisabledError.helpMessage);
+        }
+
         const match = Field.getMatch(this.filterRegExp(), line);
         if (match === null) {
             return FilterOrErrorMessage.fromError(line, 'Unable to parse line');
@@ -65,6 +71,10 @@ export class FunctionField extends Field {
             return null;
         }
 
+        if (!EnableJsInTasksQueries.getInstance().get()) {
+            throw new JsInTasksQueriesDisabledError();
+        }
+
         const reverse = !!match[1];
         const expression = match[2];
         const taskExpression = new TaskExpression(expression);
@@ -89,7 +99,7 @@ export class FunctionField extends Field {
         return new Sorter(line, this.fieldNameSingular(), comparator, reverse);
     }
 
-    public validateTaskSortKey(sortKey: any) {
+    public validateTaskSortKey(sortKey: unknown) {
         function throwSortKeyTypeError(sortKeyType: string) {
             throw new Error(`"${sortKeyType}" is not a valid sort key`);
         }
@@ -118,7 +128,7 @@ export class FunctionField extends Field {
      * @param valueA - a value that satisfies {@link validateTaskSortKey}.
      * @param valueB - a value that satisfies {@link validateTaskSortKey}.
      */
-    public compareTaskSortKeys(valueA: any, valueB: any) {
+    public compareTaskSortKeys(valueA: unknown, valueB: unknown) {
         // Precondition: Both parameter values have satisfied constraints in validateTaskSortKey().
 
         const valueAType = getValueType(valueA);
@@ -141,11 +151,12 @@ export class FunctionField extends Field {
         }
 
         if (valueAType === 'string') {
-            return valueA.localeCompare(valueB, undefined, { numeric: true });
+            return (valueA as string).localeCompare(valueB as string, undefined, { numeric: true });
         }
 
         if (valueAType === 'TasksDate') {
-            return compareByDate(valueA.moment, valueB.moment);
+            type WithMoment = { moment: Parameters<typeof compareByDate>[0] };
+            return compareByDate((valueA as WithMoment).moment, (valueB as WithMoment).moment);
         }
 
         if (valueAType === 'boolean') {
@@ -177,7 +188,7 @@ export class FunctionField extends Field {
         return undefined;
     }
 
-    private compareTaskSortKeysIfEitherIsNull(valueA: any, valueB: any) {
+    private compareTaskSortKeysIfEitherIsNull(valueA: unknown, valueB: unknown) {
         if (valueA === null && valueB === null) {
             return 0;
         }
@@ -209,6 +220,11 @@ export class FunctionField extends Field {
         if (match === null) {
             return null;
         }
+
+        if (!EnableJsInTasksQueries.getInstance().get()) {
+            throw new JsInTasksQueriesDisabledError();
+        }
+
         const reverse = !!match[1];
         const args = match[2];
         return new Grouper(line, 'function', createGrouperFunctionFromLine(args), reverse);
@@ -226,7 +242,7 @@ export class FunctionField extends Field {
      * @throws Error
      */
     public grouper(): GrouperFunction {
-        throw Error('grouper() function not valid for FunctionField. Use createGrouperFromLine() instead.');
+        throw new Error('grouper() function not valid for FunctionField. Use createGrouperFromLine() instead.');
     }
 }
 
@@ -252,7 +268,7 @@ export function filterByFunction(expression: TaskExpression, task: Task, queryCo
         return result;
     }
 
-    throw Error(`filtering function must return true or false. This returned "${result}".`);
+    throw new Error(`filtering function must return true or false. This returned "${result}".`);
 }
 
 // -----------------------------------------------------------------------------------------------------------------
@@ -273,7 +289,7 @@ export function groupByFunction(task: Task, arg: GroupingArg, queryContext?: Que
         const result = parseAndEvaluateExpression(task, arg, queryContext);
 
         if (Array.isArray(result)) {
-            return result.map((h) => h.toString());
+            return result.map((h: unknown) => (h as { toString(): string }).toString());
         }
 
         // Task uses null to represent missing information.
@@ -296,7 +312,7 @@ export function groupByFunction(task: Task, arg: GroupingArg, queryContext?: Que
         // on undefined.toString() will give an exception and a useful error
         // message below. This is a feature: it gives users feedback on the problem
         // instruction line.
-        const group = result.toString();
+        const group = (result as { toString(): string }).toString();
         return [group];
     } catch (e) {
         const errorMessage = `Error: Failed calculating expression "${arg}". The error message was: `;

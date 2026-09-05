@@ -1,12 +1,14 @@
 import { QueryComponentOrError } from '../Query/QueryComponentOrError';
 import { errorMessageForException } from '../lib/ExceptionTools';
+import { EnableJsInTasksQueries } from '../Config/EnableJsInTasksQueries';
+import { JsInTasksQueriesDisabledError } from './JsInTasksQueriesDisabledError';
 
 export class FunctionOrError extends QueryComponentOrError<Function> {}
 
 /**
  * The name and value of a parameter, as a Tuple, for passing in to {@link parseExpression} and related functions.
  */
-export type ExpressionParameter = [name: string, value: any];
+export type ExpressionParameter = [name: string, value: unknown];
 
 /**
  * Parse a JavaScript expression, and return either a Function or an error message in a string.
@@ -17,6 +19,10 @@ export type ExpressionParameter = [name: string, value: any];
  * @see evaluateExpressionOrCatch
  */
 export function parseExpression(paramsArgs: ExpressionParameter[], arg: string): FunctionOrError {
+    if (!EnableJsInTasksQueries.getInstance().get()) {
+        throw new JsInTasksQueriesDisabledError();
+    }
+
     try {
         const parameterNames = paramsArgs.map(([name]) => name);
         const input = arg.includes('return') ? arg : `return ${arg}`;
@@ -39,7 +45,11 @@ export function parseExpression(paramsArgs: ExpressionParameter[], arg: string):
  * @see parseExpression
  * @see evaluateExpressionOrCatch
  */
-export function evaluateExpression(expression: Function, paramsArgs: ExpressionParameter[]) {
+export function evaluateExpression(expression: Function, paramsArgs: ExpressionParameter[]): unknown {
+    if (!EnableJsInTasksQueries.getInstance().get()) {
+        throw new JsInTasksQueriesDisabledError();
+    }
+
     const parameterValues = paramsArgs.map(([_, value]) => value);
     return expression(...parameterValues);
 }
@@ -53,7 +63,11 @@ export function evaluateExpression(expression: Function, paramsArgs: ExpressionP
  * @see parseExpression
  * @see evaluateExpression
  */
-export function evaluateExpressionOrCatch(expression: Function, paramsArgs: ExpressionParameter[], arg: string) {
+export function evaluateExpressionOrCatch(
+    expression: Function,
+    paramsArgs: ExpressionParameter[],
+    arg: string,
+): unknown {
     try {
         return evaluateExpression(expression, paramsArgs);
     } catch (e) {

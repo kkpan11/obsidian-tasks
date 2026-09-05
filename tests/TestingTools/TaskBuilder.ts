@@ -1,6 +1,5 @@
 // Builder
 import type { Moment } from 'moment';
-import { TasksFile } from '../../src/Scripting/TasksFile';
 import { Status } from '../../src/Statuses/Status';
 import { OnCompletion } from '../../src/Task/OnCompletion';
 import { Occurrence } from '../../src/Task/Occurrence';
@@ -10,8 +9,11 @@ import { DateParser } from '../../src/DateTime/DateParser';
 import { StatusConfiguration, StatusType } from '../../src/Statuses/StatusConfiguration';
 import { TaskLocation } from '../../src/Task/TaskLocation';
 import { Priority } from '../../src/Task/Priority';
-import { setCurrentCacheFile } from '../__mocks__/obsidian';
 import type { ListItem } from '../../src/Task/ListItem';
+import type { SimulatedFile } from '../Obsidian/SimulatedFile';
+import type { MockDataName } from '../Obsidian/AllCacheSampleData';
+import { MockDataLoader } from './MockDataLoader';
+import { createTestTasksFile } from './TasksFileHelpers';
 
 /**
  * A fluent class for creating tasks for tests.
@@ -31,6 +33,7 @@ export class TaskBuilder {
 
     private _status: Status = Status.TODO;
     private _description: string = 'my description';
+    private _markdownHardBreak: string = '';
     private _path: string = '';
     private _indentation: string = '';
     private _listMarker: string = '-';
@@ -57,7 +60,7 @@ export class TaskBuilder {
     private _scheduledDateIsInferred: boolean = false;
     private _id: string = '';
     private _dependsOn: string[] = [];
-    private _mockData: any = undefined;
+    private _mockData?: SimulatedFile = undefined;
 
     /**
      * Build a Task
@@ -76,9 +79,6 @@ export class TaskBuilder {
         if (this._tags.length > 0) {
             description += ' ' + this._tags.join(' ');
         }
-        if (this._mockData !== undefined) {
-            setCurrentCacheFile(this._mockData);
-        }
         const cachedMetadata = this._mockData?.cachedMetadata ?? {};
         const task = new Task({
             // NEW_TASK_FIELD_EDIT_REQUIRED
@@ -86,7 +86,7 @@ export class TaskBuilder {
             status: this._status,
             description: description,
             taskLocation: new TaskLocation(
-                new TasksFile(this._path, cachedMetadata),
+                createTestTasksFile(this._path, cachedMetadata),
                 this._lineNumber,
                 this._sectionStart,
                 this._sectionIndex,
@@ -110,7 +110,7 @@ export class TaskBuilder {
             originalMarkdown: '',
             scheduledDateIsInferred: this._scheduledDateIsInferred,
         });
-        const markdown = task.toFileLineString();
+        const markdown = task.toFileLineString() + this._markdownHardBreak;
         return new Task({
             ...task,
             originalMarkdown: markdown,
@@ -196,6 +196,16 @@ export class TaskBuilder {
         return this;
     }
 
+    /**
+     * Set the markdownHardBreak - empty by default, and can be 2 or more spaces at the end of the task line to force a line-break.
+     *
+     * @param markdownHardBreak - markdownHardBreak, for appending at the end of the task line
+     */
+    public markdownHardBreak(markdownHardBreak: string): this {
+        this._markdownHardBreak = markdownHardBreak;
+        return this;
+    }
+
     /** Set the task's path on disc, including file name extension
      *
      * @param path Path to file, including file name extension. Use empty string to indicate 'unknown
@@ -206,14 +216,14 @@ export class TaskBuilder {
     }
 
     /**
-     * See {@link example_kanban} and other files in the same directory, for available sample mock data.
+     * See {@link MockDataName} for the list of available mock data files
      *
      * @example
-     *      const builder = new TaskBuilder().mockData(example_kanban);
-     * @param mockData
+     *      const builder = new TaskBuilder().mockData('example_kanban');
+     * @param testDataName
      */
-    public mockData(mockData: any) {
-        this._mockData = mockData;
+    public mockData(testDataName?: MockDataName) {
+        this._mockData = testDataName ? MockDataLoader.get(testDataName) : undefined;
         return this;
     }
 

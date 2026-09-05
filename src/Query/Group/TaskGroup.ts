@@ -1,4 +1,5 @@
 import type { Task } from '../../Task/Task';
+import { totalTasksCountDisplayText } from '../TaskCountDisplayText';
 import type { GroupDisplayHeading } from './GroupDisplayHeading';
 
 /**
@@ -52,6 +53,12 @@ export class TaskGroup {
     public tasks: Task[];
 
     /**
+     * The number of tasks originally in this group, before any group limit
+     * was applied.
+     */
+    private readonly _totalTasksCountBeforeLimit: number;
+
+    /**
      * Constructor
      * @param {string[]} groups - See {@link groups} for details
      * @param tasks {Task[]} - See {@link tasks} for details
@@ -60,6 +67,7 @@ export class TaskGroup {
         this.groups = groups;
         this.groupHeadings = [];
         this.tasks = tasks;
+        this._totalTasksCountBeforeLimit = tasks.length;
     }
 
     public setGroupHeadings(headingsForTaskGroup: GroupDisplayHeading[]) {
@@ -80,6 +88,11 @@ export class TaskGroup {
         this.tasks = this.tasks.slice(0, limit);
     }
 
+    public describeTaskCount() {
+        const tasksCount = this.tasks.length;
+        return totalTasksCountDisplayText(tasksCount, this._totalTasksCountBeforeLimit);
+    }
+
     /**
      * A markdown-format representation of all the tasks in this group.
      *
@@ -97,18 +110,17 @@ export class TaskGroup {
      * A human-readable representation of this task group, including names
      * and headings that should be displayed.
      *
-     * Note that this is used in snapshot testing, so if the format is
-     * changed, the snapshots will need to be updated.
+     * Note that this is used in the 'Copy results' facility and snapshot testing, so if the format is
+     * changed, the documentation and snapshots will need to be updated.
      */
     public toString(): string {
         let output = '\n';
-        output += `Group names: [${this.groups}]\n`;
 
         for (const heading of this.groupHeadings) {
             // These headings mimic the behaviour of QueryRenderer,
             // which uses 'h4', 'h5' and 'h6' for nested groups.
-            const headingPrefix = '#'.repeat(4 + heading.nestingLevel);
-            output += `${headingPrefix} [${heading.property}] ${heading.displayName}\n`;
+            const headingPrefix = '#'.repeat(Math.min(4 + heading.nestingLevel, 6));
+            output += `${headingPrefix} ${heading.displayName}\n\n`;
         }
 
         output += this.tasksAsStringOfLines();

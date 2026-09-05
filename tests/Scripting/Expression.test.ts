@@ -9,12 +9,41 @@ import { verifyMarkdownForDocs } from '../TestingTools/VerifyMarkdown';
 import { continueLinesFlattened } from '../../src/Query/Scanner';
 import { constructArguments, parseAndEvaluateExpression } from '../../src/Scripting/TaskExpression';
 import { makeQueryContext } from '../../src/Scripting/QueryContext';
-import { TasksFile } from '../../src/Scripting/TasksFile';
+import { EnableJsInTasksQueries } from '../../src/Config/EnableJsInTasksQueries';
+import { JsInTasksQueriesDisabledError } from '../../src/Scripting/JsInTasksQueriesDisabledError';
+import { createTestTasksFile } from '../TestingTools/TasksFileHelpers';
 import { formatToRepresentType } from './ScriptingTestHelpers';
 
 window.moment = moment;
 
 describe('Expression', () => {
+    describe('Expression - disabling execution', () => {
+        beforeEach(() => {
+            EnableJsInTasksQueries.getInstance().set(false);
+        });
+
+        afterEach(() => {
+            EnableJsInTasksQueries.getInstance().set(true);
+        });
+
+        it('parsing expressions should throw exception if JS execution disabled', () => {
+            expect(() => parseExpression([], '42')).toThrow(JsInTasksQueriesDisabledError);
+        });
+
+        it('evaluating expressions should throw exception if JS execution disabled', () => {
+            // Turn on JS expression to allow parsing.
+            EnableJsInTasksQueries.getInstance().set(true);
+            const functionOrError = parseExpression([], '42');
+            expect(functionOrError.queryComponent).toBeDefined();
+            const func: Function = functionOrError.queryComponent!;
+
+            // Turn off JS execution, so we can test evaluation fails.
+            EnableJsInTasksQueries.getInstance().set(false);
+
+            expect(() => evaluateExpression(func, [])).toThrow(JsInTasksQueriesDisabledError);
+        });
+    });
+
     describe('support simple calculations', () => {
         it('should calculate simple expression', () => {
             expect('1 + 1').toEvaluateAs(2);
@@ -55,7 +84,7 @@ describe('Expression', () => {
     });
 
     const task = TaskBuilder.createFullyPopulatedTask();
-    const queryContext = makeQueryContext(new TasksFile('temp.md'));
+    const queryContext = makeQueryContext(createTestTasksFile('temp.md'));
 
     describe('detect errors at parse stage', () => {
         it('should report meaningful error message for parentheses too few parentheses', () => {
@@ -151,6 +180,12 @@ describe('Expression', () => {
         const expressions = [
             'return 42',
             'const x = 1 + 1; return x * x',
+
+            // Presence of 'return', even if in a string, makes Tasks plugin think it does not need to add 'return':
+            "'any text that contains the word return'",
+            // So if the text 'return' appears anywhere in the expression, an explicit 'return' instruction must be supplied:
+            "return 'any text that contains the word return'",
+
             'if (1 === 1) { return "yes"; } else { return "no" }',
             `function f(value) {                 \\
     if (value === 1 ) {             \\

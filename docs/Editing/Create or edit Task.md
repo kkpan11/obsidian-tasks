@@ -18,6 +18,23 @@ Use the command 'Tasks: Create or edit task' to launch the modal.
 - If the cursor was on an existing task, the modal will modify that task's properties.
 - If the cursor was on a blank line, the modal will create a brand new task on that line.
 
+## Customising the Modal
+
+You can choose which task fields are displayed in the modal. This saves space, if there are fields that you never use.
+
+To choose the displayed fields, click on the Gear, and turn off the unwanted fields.
+
+By default, all fields are displayed.
+
+> [!tip]
+> There is no warning when the task being edited has is a value for a field that you have hidden.
+
+![Hide unused fields in the modal](../images/modal-hide-unused-fields.png)
+<span class="caption">Hide unused fields in the modal</span>
+
+> [!released]
+> Hiding unused fields was introduced in Tasks 7.23.0.
+
 ## Keyboard shortcuts
 
 > [!released]
@@ -84,7 +101,7 @@ There is a lot of flexibility here. For example:
 
 - You can type in exact dates, such as `2022-11-28`.
 - You can also enter parts of dates, such as `6 oct`.
-- You can enter relative dates, such as `today` or `tomorrow` or `Saturday`.
+- You can enter relative dates, such as `today`, `tomorrow`, `Saturday`, `10 days`, `2 weeks`.
 
 Note that relative dates will be always interpreted as being in the future, because that is usually what you want. You can change this behavior by unchecking "Only future dates" if you want to enter an overdue task or experiment with the way how relative dates in the past would be interpreted in queries.
 
@@ -236,14 +253,6 @@ This might be useful if you realise that you had forgotten to mark a recurring t
 
 (Today's date is still used for an Created day on a new recurrence, though.)
 
-## Display values
-
-These values cannot currently be edited in this modal.
-
-### Completed
-
-A read-only checkbox, showing whether the task is completed.
-
 ## Finishing off
 
 To close the modal and save your edits, do one of:
@@ -284,6 +293,22 @@ If the [custom hotkey](https://help.obsidian.md/Customization/Custom+hotkeys) fo
 For example, making `Alt + O` (Linux and Windows) or `Ctrl + Opt + O` (Mac) will mean that when the modal opens, the `Lowest` priority is selected, instead of `Normal`.
 
 We are tracking this in [issue #2503](https://github.com/obsidian-tasks-group/obsidian-tasks/issues/2503).
+
+## Support
+
+Before creating a new bug report or feature request about Create or edit Task, please check existing items to avoid duplicates.
+
+You do not need to search manually: the links below are already filtered to the label `"scope: edit task"`.
+
+- Check both Open and Closed items.
+- If you find an existing item, support it there instead of adding a `+1` comment. See [[About Support and Help#How to support an existing request|How to support an existing request]].
+
+| Type | Open | Closed | Notes |
+| --- | --- | --- | --- |
+| Issues | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aopen%20label%3A%22scope%3A+edit+task%22%20is%3Aissue%20) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/issues?q=is%3Aclosed%20label%3A%22scope%3A+edit+task%22%20is%3Aissue%20) | bug reports and feature requests |
+| Discussions | [Open](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aopen+label%3A%22scope%3A+edit+task%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | [Closed](https://github.com/obsidian-tasks-group/obsidian-tasks/discussions/categories/ideas-any-new-feature-requests-go-in-issues-please?discussions_q=is%3Aclosed+label%3A%22scope%3A+edit+task%22+category%3A%22Ideas%3A+Any+New+Feature+Requests+go+in+Issues+please%22+sort%3Atop) | older feature discussions from before late 2022 |
+
+If you do not find an existing item in Issues or Discussions, see [[About Support and Help]] for how to report a bug or request a feature.
 
 ## Use this modal in scripts and other plugins
 

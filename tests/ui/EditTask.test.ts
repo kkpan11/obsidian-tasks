@@ -1,11 +1,12 @@
 /**
  * @jest-environment jsdom
  */
-import { type RenderResult, fireEvent, render } from '@testing-library/svelte';
+import { type RenderResult, fireEvent, render, waitFor } from '@testing-library/svelte';
 import moment from 'moment';
 import { taskFromLine } from '../../src/Commands/CreateOrEditTaskParser';
+import type { EditModalShowSettings } from '../../src/Config/EditModalShowSettings';
 import { GlobalFilter } from '../../src/Config/GlobalFilter';
-import { resetSettings, updateSettings } from '../../src/Config/Settings';
+import { getSettings, resetSettings, updateSettings } from '../../src/Config/Settings';
 import { DateFallback } from '../../src/DateTime/DateFallback';
 import { StatusRegistry } from '../../src/Statuses/StatusRegistry';
 import type { Task } from '../../src/Task/Task';
@@ -15,9 +16,11 @@ import { verifyAllCombinations3Async } from '../TestingTools/CombinationApproval
 import { prettifyHTML } from '../TestingTools/HTMLHelpers';
 import { TaskBuilder } from '../TestingTools/TaskBuilder';
 import {
+    editInputElement,
     getAndCheckApplyButton,
     getAndCheckRenderedDescriptionElement,
     getAndCheckRenderedElement,
+    optionsWithoutARandomField,
 } from './RenderingTestHelpers';
 
 window.moment = moment;
@@ -52,10 +55,6 @@ function renderAndCheckModal(task: Task, onSubmit: (updatedTasks: Task[]) => voi
     const { container } = result;
     expect(() => container).toBeTruthy();
     return { result, container };
-}
-
-async function editInputElement(inputElement: HTMLInputElement, newValue: string) {
-    await fireEvent.input(inputElement, { target: { value: newValue } });
 }
 
 async function editInputElementAndSubmit(
@@ -174,6 +173,10 @@ function getElementValue(container: HTMLElement, elementId: string) {
     return element.value;
 }
 
+afterEach(() => {
+    resetSettings();
+});
+
 describe('Task rendering', () => {
     afterEach(() => {
         GlobalFilter.getInstance().reset();
@@ -235,6 +238,22 @@ describe('Task rendering', () => {
         testDescriptionRender(
             'without global filter but with scheduled date ⏳ 2023-06-13',
             'without global filter but with scheduled date', // fails, as the absence of the global filter means the line is not parsed, and the emoji stays in the description.
+        );
+    });
+
+    it('should strip 1 trailing space from description', () => {
+        testDescriptionRender(
+            // force line break
+            'started with 1 trailing space ',
+            'started with 1 trailing space',
+        );
+    });
+
+    it('should strip 2 trailing spaces from description', () => {
+        testDescriptionRender(
+            // force line break
+            'started with 2 trailing spaces  ',
+            'started with 2 trailing spaces',
         );
     });
 
@@ -638,12 +657,18 @@ describe('Exhaustive editing', () => {
         const initialTaskLineValues = [
             '',
             'plain text, not a list item',
+            'plain text, not a list item, had 1 trailing space, should end up with none ',
+            'plain text, not a list item, should retain its 2 trailing spaces  ', // TODO does not retain trailing spaces
             '-',
             '- ',
             '- [ ]',
             '- [ ] ',
             '- list item, but no checkbox',
+            '- list item, but no checkbox, had 1 trailing space, should end up with none ',
+            '- list item, but no checkbox, should retain its 2 trailing spaces  ', // TODO does not retain trailing spaces
             '- [ ] checkbox with initial description',
+            '- [ ] checkbox with initial description, had 1 trailing space, should end up with none ',
+            '- [ ] checkbox with initial description, should retain its 2 trailing spaces  ',
             '- [ ] checkbox with initial description and created date ➕ 2023-01-01',
             '- [ ] #task checkbox with global filter string and initial description',
             '- [ ] checkbox with initial description ending with task tag at end #task',
@@ -675,22 +700,22 @@ describe('Exhaustive editing', () => {
     });
 });
 
+function verifyModalHTML() {
+    // Populate task a valid and an invalid date. Note that the valid date value
+    // is not visible in the HTML output.
+    const task = taskFromLine({ line: '- [ ] absolutely to do 🛫 2024-01-01 ⏳ 2024-02-33', path: '' });
+    const onSubmit = () => {};
+    const allTasks = [task];
+    const { container } = renderAndCheckModal(task, onSubmit, allTasks);
+
+    const prettyHTML = prettifyHTML(container.innerHTML);
+    verifyWithFileExtension(prettyHTML, 'html');
+}
+
 describe('Edit Modal HTML snapshot tests', () => {
     afterEach(() => {
         resetSettings();
     });
-
-    function verifyModalHTML() {
-        // Populate task a valid and an invalid date. Note that the valid date value
-        // is not visible in the HTML output.
-        const task = taskFromLine({ line: '- [ ] absolutely to do 🛫 2024-01-01 ⏳ 2024-02-33', path: '' });
-        const onSubmit = () => {};
-        const allTasks = [task];
-        const { container } = renderAndCheckModal(task, onSubmit, allTasks);
-
-        const prettyHTML = prettifyHTML(container.innerHTML);
-        verifyWithFileExtension(prettyHTML, 'html');
-    }
 
     it('should match snapshot', () => {
         updateSettings({ provideAccessKeys: true });
@@ -700,5 +725,120 @@ describe('Edit Modal HTML snapshot tests', () => {
     it('should match snapshot - without access keys', () => {
         updateSettings({ provideAccessKeys: false });
         verifyModalHTML();
+    });
+});
+
+describe('Hiding modal fields', () => {
+    function testElementRendered(elementId: string) {
+        const fullyPopulatedLine = TaskBuilder.createFullyPopulatedTask().toFileLineString();
+        const task = taskFromLine({ line: fullyPopulatedLine, path: '' });
+
+        const onSubmit = (_: Task[]): void => {};
+        const { container } = renderAndCheckModal(task, onSubmit);
+
+        getAndCheckRenderedElement(container, elementId);
+    }
+
+    function testElementNotRendered(elementId: string) {
+        const fullyPopulatedLine = TaskBuilder.createFullyPopulatedTask().toFileLineString();
+        const task = taskFromLine({ line: fullyPopulatedLine, path: '' });
+
+        const onSubmit = (_: Task[]): void => {};
+        const { container } = renderAndCheckModal(task, onSubmit);
+
+        const element = container.ownerDocument.getElementById(elementId) as unknown;
+        expect(element).toBeNull();
+    }
+
+    const fields = Object.keys(getSettings().isShownInEditModal) as (keyof EditModalShowSettings)[];
+
+    it.each(fields)('should show %s field by default', (field) => {
+        testElementRendered(field);
+    });
+
+    it.each(fields)('should show %s field even if it is absent in the settings', (field) => {
+        updateSettings({ isShownInEditModal: optionsWithoutARandomField() });
+
+        testElementRendered(field);
+    });
+
+    function hideFields(...fields: (keyof EditModalShowSettings)[]) {
+        const withHiddenField = { ...getSettings().isShownInEditModal };
+        for (const field of fields) {
+            withHiddenField[field] = false;
+        }
+        return withHiddenField;
+    }
+
+    it.each(fields)('should hide %s field', (field) => {
+        updateSettings({ isShownInEditModal: hideFields(field) });
+
+        testElementNotRendered(field);
+    });
+
+    it('should hide line after priority', () => {
+        updateSettings({ isShownInEditModal: hideFields('priority') });
+
+        testElementNotRendered('line-after-priority');
+    });
+
+    it('should hide "Only future dates checkbox" and line after happens dates', () => {
+        // NEW_TASK_FIELD_EDIT_REQUIRED - add new happens date below
+        updateSettings({ isShownInEditModal: hideFields('due', 'scheduled', 'start') });
+
+        testElementNotRendered('only-future-dates');
+        testElementNotRendered('line-after-happens-dates');
+    });
+
+    it('should hide line after dependencies', () => {
+        updateSettings({ isShownInEditModal: hideFields('before_this', 'after_this') });
+
+        testElementNotRendered('line-after-dependencies');
+    });
+});
+
+describe('Buttons in the modal on mobile', () => {
+    // Regression test for the Apply button needing two taps on mobile.
+    //
+    // '.is-mobile .tasks-edit-modal-container:focus-within .modal-content' adds up to
+    // 360px of padding while a field has focus, to let the sticky button bar scroll
+    // clear of the software keyboard. WebKit does not focus a <button> when it is
+    // tapped, but it does blur the focused text field, so that padding is removed
+    // part-way through the tap and the button bar moves several hundred pixels. By
+    // the time the tap finishes, the button is no longer under the finger and the
+    // click is delivered to the <form> instead - so the first tap appears to do
+    // nothing.
+    //
+    // Preventing the default action of 'mousedown' stops the focus change, so the
+    // field keeps focus, the padding stays, and nothing moves during the tap.
+    //
+    // jsdom has no layout and does not move focus on 'mousedown', so this checks the
+    // one thing it can: that the default action is cancelled.
+    it.each([['Apply'], ['Cancel']])(
+        'should cancel the default focus change when %s is pressed',
+        async (buttonText) => {
+            const task = new TaskBuilder().build();
+            const { result } = renderAndCheckModal(task, () => {});
+
+            const button = result.getByText(buttonText) as HTMLButtonElement;
+
+            // fireEvent resolves to false when a listener called preventDefault().
+            await expect(fireEvent.mouseDown(button)).resolves.toBe(false);
+        },
+    );
+
+    it('should cancel the default focus change when a dependency is removed', async () => {
+        const blockingTask = new TaskBuilder().id('abcdef').description('Wash the bin').build();
+        const task = new TaskBuilder().dependsOn(['abcdef']).description('Take out the trash').build();
+        const { container } = renderAndCheckModal(task, () => {}, [task, blockingTask]);
+
+        // The dependency fields are only rendered once the component has mounted.
+        const deleteButton = await waitFor(() => {
+            const button = container.querySelector<HTMLButtonElement>('.task-dependency-delete');
+            expect(button).not.toBeNull();
+            return button!;
+        });
+
+        await expect(fireEvent.mouseDown(deleteButton)).resolves.toBe(false);
     });
 });

@@ -18,5 +18,9 @@
   "table-editor-obsidian",
   "reveal-active-file-button",
   "obsidian-meta-bind-plugin",
-  "vault-nickname"
+  "vault-nickname",
+  "open-plugin-settings",
+  "calendar",
+  "nldates-obsidian",
+  "refresh-preview"
 ]
